@@ -139,8 +139,8 @@ class EmployeeCleanupTool:
 1️⃣ UPLOAD FILES: Upload your Excel (.xlsx, .xls) or CSV files
    • Current System Report (Required) - Latest employee data to enrich
    • Previous Reference (Required) - Contains User ID → PERNR mapping
-   • Masterlist Current (Optional) - Active employees with PERNR and Full Name
-   • Masterlist Resigned (Optional) - Resigned employees with PERNR and Full Name
+   • Masterlist Current (Required) - Active employees with PERNR and Full Name
+   • Masterlist Resigned (Required) - Resigned employees with PERNR and Full Name
 
 2️⃣ PREVIEW DATA: Review uploaded files to verify structure and content
 
@@ -211,8 +211,8 @@ class EmployeeCleanupTool:
         file_configs = [
             ('current_system', 'Current System Report', 'Latest employee data to enrich with Employee Numbers and Full Names', 'Required'),
             ('previous_reference', 'Previous Reference', 'Contains User ID to Employee Number mapping', 'Required'),
-            ('masterlist_current', 'Masterlist – Current', 'Active employees with Employee Number and Full Name', 'Optional'),
-            ('masterlist_resigned', 'Masterlist – Resigned', 'Resigned employees with Employee Number and Full Name', 'Optional')
+            ('masterlist_current', 'Masterlist – Current', 'Active employees with Employee Number and Full Name', 'Required'),
+            ('masterlist_resigned', 'Masterlist – Resigned', 'Resigned employees with Employee Number and Full Name', 'Required')
         ]
         
         for idx, (key, title, desc, req) in enumerate(file_configs):
@@ -559,10 +559,20 @@ class EmployeeCleanupTool:
     def show_cleanup_section(self):
         """Show cleanup configuration section"""
         # Check required files
-        if self.uploaded_files['current_system'] is None or self.uploaded_files['previous_reference'] is None:
+        missing_files = []
+        if self.uploaded_files['current_system'] is None:
+            missing_files.append('Current System Report')
+        if self.uploaded_files['previous_reference'] is None:
+            missing_files.append('Previous Reference')
+        if self.uploaded_files['masterlist_current'] is None:
+            missing_files.append('Masterlist – Current')
+        if self.uploaded_files['masterlist_resigned'] is None:
+            missing_files.append('Masterlist – Resigned')
+        
+        if missing_files:
             messagebox.showwarning(
                 "Missing Required Files",
-                "Please upload both 'Current System Report' and 'Previous Reference' before proceeding."
+                f"Please upload all required files before proceeding.\n\nMissing files:\n• " + "\n• ".join(missing_files)
             )
             return
             
