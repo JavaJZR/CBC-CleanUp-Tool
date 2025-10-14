@@ -1,0 +1,17 @@
+# Employee Data Clean-Up Tool - Python Requirements
+
+# Core dependencies
+pandas>=2.0.0
+numpy>=1.24.0
+openpyxl>=3.1.0  # For Excel file support (.xlsx)
+xlrd>=2.0.1      # For older Excel files (.xls)
+fuzzywuzzy>=0.18.0  # Fuzzy string matching
+python-Levenshtein>=0.21.0  # Speeds up fuzzywuzzy
+
+# Note: tkinter comes pre-installed with Python
+# If tkinter is not available, install it using:
+# - Ubuntu/Debian: sudo apt-get install python3-tk
+# - Fedora: sudo dnf install python3-tkinter
+# - macOS: Should be included with Python installation
+# - Windows: Should be included with Python installation
+
