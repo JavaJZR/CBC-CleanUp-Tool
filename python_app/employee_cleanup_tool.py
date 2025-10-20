@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, Optional, List, Tuple
 from fuzzywuzzy import fuzz
 from datetime import datetime
+import re
 import threading
 
 
@@ -39,6 +40,7 @@ class EmployeeCleanupTool:
         
         self.cleaned_data: Optional[pd.DataFrame] = None
         self.unmatched_data: Optional[pd.DataFrame] = None
+        self.fuzzy_matched_data: Optional[pd.DataFrame] = None  # Track fuzzy logic matches
         self.threshold = 80
         self.use_fuzzy_logic = True  # Default to using fuzzy logic
         self.current_step = 1
@@ -329,6 +331,87 @@ class EmployeeCleanupTool:
         card.preview_btn = preview_btn
         
         return card
+    
+    def detect_and_load_csv(self, file_path: str) -> pd.DataFrame:
+        """Detect header row and load CSV file by searching for 'Full Name'"""
+        # First try standard loading
+        try:
+            df = pd.read_csv(file_path)
+            if 'Full Name' in df.columns:
+                return df
+        except:
+            pass
+        
+        # Search for 'Full Name' in the first 10 rows
+        for header_row in range(10):  # Check first 10 rows
+            try:
+                df = pd.read_csv(file_path, header=header_row)
+                if 'Full Name' in df.columns:
+                    return df
+            except:
+                continue
+        
+        # If 'Full Name' not found, try keyword detection
+        for header_row in range(10):
+            try:
+                df = pd.read_csv(file_path, header=header_row)
+                if self.is_valid_header(df.columns):
+                    return df
+            except:
+                continue
+        
+        # Fallback to first row
+        return pd.read_csv(file_path)
+    
+    def detect_and_load_excel(self, file_path: str) -> pd.DataFrame:
+        """Detect header row and load Excel file by searching for 'Full Name'"""
+        # First try standard loading
+        try:
+            df = pd.read_excel(file_path)
+            if 'Full Name' in df.columns:
+                return df
+        except:
+            pass
+        
+        # Search for 'Full Name' in the first 10 rows
+        for header_row in range(10):  # Check first 10 rows
+            try:
+                df = pd.read_excel(file_path, header=header_row)
+                if 'Full Name' in df.columns:
+                    return df
+            except:
+                continue
+        
+        # If 'Full Name' not found, try keyword detection
+        for header_row in range(10):
+            try:
+                df = pd.read_excel(file_path, header=header_row)
+                if self.is_valid_header(df.columns):
+                    return df
+            except:
+                continue
+        
+        # Fallback to first row
+        return pd.read_excel(file_path)
+    
+    def is_valid_header(self, columns) -> bool:
+        """Check if columns look like valid headers by looking for expected keywords"""
+        column_names = [str(col).lower() for col in columns]
+        
+        # Look for common employee data keywords
+        expected_keywords = [
+            'pernr', 'pers. number', 'employee number', 'emp number',
+            'full name', 'name', 'employee name', 'username',
+            'user id', 'userid', 'sysid', 'department', 'position',
+            'resignation', 'date', 'effectivity'
+        ]
+        
+        # Count how many expected keywords are found
+        found_keywords = sum(1 for keyword in expected_keywords 
+                           if any(keyword in col for col in column_names))
+        
+        # If we find at least 2 expected keywords, consider it a valid header
+        return found_keywords >= 2
         
     def upload_file(self, file_type: str):
         """Handle file upload"""
@@ -353,9 +436,11 @@ class EmployeeCleanupTool:
             file_extension = Path(file_path).suffix.lower()
             
             if file_extension == '.csv':
-                df = pd.read_csv(file_path)
+                # Try to detect header row automatically
+                df = self.detect_and_load_csv(file_path)
             elif file_extension in ['.xlsx', '.xls']:
-                df = pd.read_excel(file_path)
+                # Try to detect header row automatically
+                df = self.detect_and_load_excel(file_path)
             else:
                 messagebox.showerror("Error", "Unsupported file format. Please upload CSV, XLS, or XLSX files.")
                 return
@@ -595,10 +680,11 @@ class EmployeeCleanupTool:
         # Description
         desc_label = tk.Label(
             self.cleanup_frame,
-            text="Add 'PERNR', 'Full Name (From Masterlist)', 'Resignation Date', and Organizational Data columns: 1) PERNR via User ID from Previous Reference, 2) Fallback: Name matching if User ID fails, 3) Full Name via PERNR from Masterlists, 4) Resignation Date via PERNR from Resigned Masterlist, 5) Organizational Data via PERNR from Current Masterlist, 6) Optional fuzzy logic for name variations",
+            text="This process will enrich your data by adding missing information:\n• Employee Numbers (PERNR) • Full Names • Resignation Dates • Job Details\n\nHow it works: 1) Find employee numbers using User IDs, 2) If that fails, match by name, 3) Get full names and job details from masterlists, 4) Optional: Use smart matching for similar names",
             font=("Arial", 9),
             bg="white",
-            fg="#6b7280"
+            fg="#6b7280",
+            justify="left"
         )
         desc_label.pack(anchor="w", pady=(0, 15))
         
@@ -651,6 +737,57 @@ class EmployeeCleanupTool:
         )
         fuzzy_desc.pack(side="left", padx=(10, 0))
         
+        # Threshold control frame
+        threshold_frame = tk.Frame(run_frame, bg="white")
+        threshold_frame.pack(fill="x", pady=(10, 0))
+        
+        # Threshold label
+        threshold_label = tk.Label(
+            threshold_frame,
+            text="Fuzzy Match Threshold:",
+            font=("Arial", 9, "bold"),
+            bg="white",
+            fg="#374151"
+        )
+        threshold_label.pack(side="left")
+        
+        # Threshold slider
+        self.threshold_var = tk.DoubleVar(value=self.threshold)
+        self.threshold_slider = tk.Scale(
+            threshold_frame,
+            from_=50,
+            to=100,
+            orient="horizontal",
+            variable=self.threshold_var,
+            command=self.update_threshold,
+            bg="white",
+            fg="#374151",
+            font=("Arial", 8),
+            length=200,
+            resolution=1
+        )
+        self.threshold_slider.pack(side="left", padx=(10, 10))
+        
+        # Threshold value label
+        self.threshold_label = tk.Label(
+            threshold_frame,
+            text=f"{self.threshold}%",
+            font=("Arial", 9, "bold"),
+            bg="white",
+            fg="#dc2626"
+        )
+        self.threshold_label.pack(side="left")
+        
+        # Threshold description
+        threshold_desc = tk.Label(
+            threshold_frame,
+            text="(Only applies when Fuzzy Logic is enabled. Higher = more strict, Lower = more lenient)",
+            font=("Arial", 7),
+            bg="white",
+            fg="#6b7280"
+        )
+        threshold_desc.pack(side="left", padx=(10, 0))
+        
         self.run_btn = tk.Button(
             run_frame,
             text="🚀 Run Clean-Up Process",
@@ -686,13 +823,81 @@ class EmployeeCleanupTool:
         self.status_label.pack(pady=(5, 0))
         
     def update_threshold(self, value):
-        """Update threshold label"""
+        """Update threshold value and label"""
         self.threshold = int(float(value))
-        self.threshold_label.config(text=f"{self.threshold}%")
+        if hasattr(self, 'threshold_label'):
+            self.threshold_label.config(text=f"{self.threshold}%")
+        
+        # Update the slider value if it exists
+        if hasattr(self, 'threshold_slider'):
+            self.threshold_slider.set(self.threshold)
+    
+    def set_threshold(self, value):
+        """Set threshold programmatically"""
+        if 50 <= value <= 100:
+            self.threshold = value
+            if hasattr(self, 'threshold_var'):
+                self.threshold_var.set(value)
+            if hasattr(self, 'threshold_label'):
+                self.threshold_label.config(text=f"{self.threshold}%")
+            if hasattr(self, 'threshold_slider'):
+                self.threshold_slider.set(value)
+            return True
+        return False
+    
+    def get_threshold(self):
+        """Get current threshold value"""
+        return self.threshold
+    
+    def reset_threshold(self):
+        """Reset threshold to default value"""
+        self.set_threshold(80)
+    
+    def test_threshold(self, name1, name2):
+        """Test fuzzy matching with current threshold"""
+        from fuzzywuzzy import fuzz
+        
+        # Clean names (same as in the application)
+        name1_clean = str(name1).strip().lower()
+        name2_clean = str(name2).strip().lower()
+        
+        # Check exact match first
+        exact_match = name1_clean == name2_clean
+        
+        # Calculate similarity scores
+        score = fuzz.ratio(name1_clean, name2_clean)
+        partial_score = fuzz.partial_ratio(name1_clean, name2_clean)
+        final_score = max(score, partial_score)
+        
+        # Check if it would match (only if fuzzy logic is enabled)
+        would_match = exact_match or (self.use_fuzzy_logic and final_score >= self.threshold)
+        
+        return {
+            'name1': name1,
+            'name2': name2,
+            'exact_match': exact_match,
+            'ratio_score': score,
+            'partial_score': partial_score,
+            'final_score': final_score,
+            'threshold': self.threshold,
+            'fuzzy_enabled': self.use_fuzzy_logic,
+            'would_match': would_match
+        }
         
     def toggle_fuzzy_logic(self):
         """Toggle fuzzy logic option"""
         self.use_fuzzy_logic = self.fuzzy_var.get()
+        
+        # Enable/disable threshold controls based on fuzzy logic
+        if hasattr(self, 'threshold_slider'):
+            if self.use_fuzzy_logic:
+                self.threshold_slider.config(state="normal")
+                if hasattr(self, 'threshold_label'):
+                    self.threshold_label.config(fg="#dc2626")  # Red when active
+            else:
+                self.threshold_slider.config(state="disabled")
+                if hasattr(self, 'threshold_label'):
+                    self.threshold_label.config(fg="#9ca3af")  # Gray when disabled
         
     def run_cleanup(self):
         """Run the cleanup process"""
@@ -718,7 +923,7 @@ class EmployeeCleanupTool:
             else:
                 # Try flexible matching
                 flexible_match = [col for col in self.uploaded_files['current_system'].columns 
-                                 if any(keyword in col.lower() for keyword in ['user', 'id', 'sysid', 'username'])]
+                                 if any(keyword in str(col).lower() for keyword in ['user', 'id', 'sysid', 'username'])]
                 if flexible_match:
                     user_id_current = flexible_match[0]
         
@@ -732,7 +937,7 @@ class EmployeeCleanupTool:
             else:
                 # Try flexible matching
                 flexible_match = [col for col in self.uploaded_files['previous_reference'].columns 
-                                 if any(keyword in col.lower() for keyword in ['user', 'id', 'sysid', 'username'])]
+                                 if any(keyword in str(col).lower() for keyword in ['user', 'id', 'sysid', 'username'])]
                 if flexible_match:
                     user_id_previous = flexible_match[0]
         
@@ -746,7 +951,7 @@ class EmployeeCleanupTool:
             else:
                 # Try flexible matching
                 flexible_match = [col for col in self.uploaded_files['previous_reference'].columns 
-                                 if col.upper() == 'PERNR' or ('employee' in col.lower() and 'number' in col.lower())]
+                                 if str(col).upper() == 'PERNR' or ('employee' in str(col).lower() and 'number' in str(col).lower())]
                 if flexible_match:
                     pernr_previous = flexible_match[0]
         
@@ -772,6 +977,8 @@ class EmployeeCleanupTool:
             current_df['Group Name'] = None
             current_df['Area/Division Name'] = None
             current_df['Department/Branch'] = None
+            current_df['Match Type'] = None  # Track how PERNR was found
+            current_df['Match Score'] = None  # Track fuzzy match score
             
             fuzzy_status = "with fuzzy matching" if self.use_fuzzy_logic else "exact matching only"
             self.update_progress(20, f"Looking up PERNRs, Full Names, Resignation Dates, and Organizational Data (User ID lookup + Name fallback {fuzzy_status})...")
@@ -783,6 +990,8 @@ class EmployeeCleanupTool:
             for idx, row in current_df.iterrows():
                 employee_number = None
                 full_name = None
+                match_type = "no_match"  # Initialize match tracking
+                match_score = 0.0
                 
                 # Step 1: Lookup PERNR by User ID from previous_reference
                 # This is the primary lookup method with flexible column detection
@@ -794,27 +1003,31 @@ class EmployeeCleanupTool:
                             # Convert PERNR to integer
                             emp_num = pd.to_numeric(match.iloc[0][pernr_previous], errors='coerce')
                             employee_number = str(int(emp_num)) if pd.notna(emp_num) else None
+                            if employee_number is not None:
+                                match_type = "user_id_match"  # Track User ID match
+                                match_score = 100.0
                 
                 # Step 2: Fallback lookup using name matching if User ID lookup failed
                 # Priority: 1) Exact name match, 2) Fuzzy matching (if exact fails)
-                # This finds PERNR by comparing "Username (Full Name)" with masterlist names
+                # This finds PERNR by comparing "Username (Full Name)" with "Full Name" from masterlists
+                # Order: Current masterlist first, then resigned masterlist
                 if employee_number is None:
                     # Get the current system's username/full name for comparison
                     current_name = None
-                    name_columns_current = [col for col in current_df.columns if 'username' in col.lower() or 'name' in col.lower()]
+                    name_columns_current = [col for col in current_df.columns if 'username' in str(col).lower() or 'name' in str(col).lower()]
                     if name_columns_current:
                         current_name = row.get(name_columns_current[0])
                     
                     if current_name and pd.notna(current_name):
                         # Try to find matching employee in masterlist_current
                         if masterlist_current_df is not None:
-                            employee_number, full_name = self.find_employee_by_name(
+                            employee_number, full_name, match_type, match_score = self.find_employee_by_name(
                                 current_name, masterlist_current_df, "current"
                             )
                         
                         # If not found in current, try masterlist_resigned
                         if employee_number is None and masterlist_resigned_df is not None:
-                            employee_number, full_name = self.find_employee_by_name(
+                            employee_number, full_name, match_type, match_score = self.find_employee_by_name(
                                 current_name, masterlist_resigned_df, "resigned"
                             )
                 
@@ -828,15 +1041,26 @@ class EmployeeCleanupTool:
                         emp_num_numeric = int(emp_num_numeric)
                     
                     # Try masterlist_current first
-                    if masterlist_current_df is not None and 'PERNR' in masterlist_current_df.columns:
-                        # Check for Full Name column (could be "Full Name", "Name", "Employee Name", etc.)
-                        name_columns = [col for col in masterlist_current_df.columns if 'name' in col.lower()]
+                    pernr_col = None
+                    if masterlist_current_df is not None:
+                        # Check for PERNR column first, then "Pers. Number"
+                        if 'PERNR' in masterlist_current_df.columns:
+                            pernr_col = 'PERNR'
+                        elif 'Pers. Number' in masterlist_current_df.columns:
+                            pernr_col = 'Pers. Number'
+                    
+                    if pernr_col is not None:
+                        # Check for Full Name column - prioritize exact "Full Name" match
+                        name_columns = [col for col in masterlist_current_df.columns if col == 'Full Name']
+                        if not name_columns:
+                            # Fallback to flexible matching (could be "Name", "Employee Name", etc.)
+                            name_columns = [col for col in masterlist_current_df.columns if 'name' in str(col).lower()]
                         if name_columns:
                             # Convert masterlist PERNR to integer for comparison
                             masterlist_current_df_copy = masterlist_current_df.copy()
-                            masterlist_current_df_copy['PERNR'] = pd.to_numeric(masterlist_current_df_copy['PERNR'], errors='coerce')
-                            masterlist_current_df_copy['PERNR'] = masterlist_current_df_copy['PERNR'].astype('Int64')
-                            match = masterlist_current_df_copy[masterlist_current_df_copy['PERNR'] == emp_num_numeric]
+                            masterlist_current_df_copy[pernr_col] = pd.to_numeric(masterlist_current_df_copy[pernr_col], errors='coerce')
+                            masterlist_current_df_copy[pernr_col] = masterlist_current_df_copy[pernr_col].astype('Int64')
+                            match = masterlist_current_df_copy[masterlist_current_df_copy[pernr_col] == emp_num_numeric]
                             if not match.empty:
                                 # Get the original index to retrieve the full name from original dataframe
                                 original_idx = match.index[0]
@@ -844,7 +1068,7 @@ class EmployeeCleanupTool:
                     
                     # If not found in current, try masterlist_resigned
                     if full_name is None and masterlist_resigned_df is not None and 'PERNR' in masterlist_resigned_df.columns:
-                        name_columns = [col for col in masterlist_resigned_df.columns if 'name' in col.lower()]
+                        name_columns = [col for col in masterlist_resigned_df.columns if 'name' in str(col).lower()]
                         if name_columns:
                             # Convert masterlist PERNR to integer for comparison
                             masterlist_resigned_df_copy = masterlist_resigned_df.copy()
@@ -872,7 +1096,7 @@ class EmployeeCleanupTool:
                         
                         if not match.empty:
                             # Find resignation date column (could be "Resignation Date", "Date", "End Date", etc.)
-                            date_columns = [col for col in masterlist_resigned_df.columns if any(keyword in col.lower() for keyword in ['resignation', 'date', 'end', 'termination', 'exit'])]
+                            date_columns = [col for col in masterlist_resigned_df.columns if any(keyword in str(col).lower() for keyword in ['resignation', 'date', 'end', 'termination', 'exit', 'effectivity', 'separation', 'report'])]
                             if date_columns:
                                 # Get the original index to retrieve the resignation date from original dataframe
                                 original_idx = match.index[0]
@@ -906,7 +1130,15 @@ class EmployeeCleanupTool:
                 area_division_name = None
                 department_branch = None
                 
-                if employee_number is not None and masterlist_current_df is not None and 'PERNR' in masterlist_current_df.columns:
+                # Check for PERNR or "Pers. Number" column
+                pernr_col_org = None
+                if employee_number is not None and masterlist_current_df is not None:
+                    if 'PERNR' in masterlist_current_df.columns:
+                        pernr_col_org = 'PERNR'
+                    elif 'Pers. Number' in masterlist_current_df.columns:
+                        pernr_col_org = 'Pers. Number'
+                
+                if pernr_col_org is not None:
                     # Convert employee_number to integer for proper comparison
                     emp_num_numeric = pd.to_numeric(employee_number, errors='coerce')
                     if pd.notna(emp_num_numeric):
@@ -914,9 +1146,9 @@ class EmployeeCleanupTool:
                         
                         # Convert masterlist PERNR to integer for comparison
                         masterlist_current_df_copy = masterlist_current_df.copy()
-                        masterlist_current_df_copy['PERNR'] = pd.to_numeric(masterlist_current_df_copy['PERNR'], errors='coerce')
-                        masterlist_current_df_copy['PERNR'] = masterlist_current_df_copy['PERNR'].astype('Int64')
-                        match = masterlist_current_df_copy[masterlist_current_df_copy['PERNR'] == emp_num_numeric]
+                        masterlist_current_df_copy[pernr_col_org] = pd.to_numeric(masterlist_current_df_copy[pernr_col_org], errors='coerce')
+                        masterlist_current_df_copy[pernr_col_org] = masterlist_current_df_copy[pernr_col_org].astype('Int64')
+                        match = masterlist_current_df_copy[masterlist_current_df_copy[pernr_col_org] == emp_num_numeric]
                         
                         if not match.empty:
                             # Get the original index to retrieve organizational data from original dataframe
@@ -924,7 +1156,7 @@ class EmployeeCleanupTool:
                             
                             # Find and retrieve organizational columns
                             org_columns = {
-                                'Position Name': ['position', 'job', 'title', 'role'],
+                                'Position Name': ['position', 'job', 'title', 'role', 'pos. name'],
                                 'Segment Name': ['segment'],
                                 'Group Name': ['group'],
                                 'Area/Division Name': ['area', 'division'],
@@ -934,7 +1166,7 @@ class EmployeeCleanupTool:
                             for target_col, keywords in org_columns.items():
                                 # Find matching column in masterlist
                                 matching_cols = [col for col in masterlist_current_df.columns 
-                                               if any(keyword in col.lower() for keyword in keywords)]
+                                               if any(keyword in str(col).lower() for keyword in keywords)]
                                 
                                 if matching_cols:
                                     # Use the first matching column found
@@ -961,6 +1193,11 @@ class EmployeeCleanupTool:
                 current_df.at[idx, 'Area/Division Name'] = area_division_name
                 current_df.at[idx, 'Department/Branch'] = department_branch
                 
+                # Track match type and score
+                if employee_number is not None:
+                    current_df.at[idx, 'Match Type'] = match_type
+                    current_df.at[idx, 'Match Score'] = match_score
+                
                 # Update progress
                 progress = 20 + (idx / len(current_df)) * 70
                 self.update_progress(progress, f"Processing row {idx + 1} of {len(current_df)}...")
@@ -975,6 +1212,10 @@ class EmployeeCleanupTool:
             self.cleaned_data = current_df[current_df['PERNR'].notna()].copy()
             self.unmatched_data = current_df[current_df['PERNR'].isna()].copy()
             
+            # Create fuzzy matched data sheet (records matched using fuzzy logic)
+            fuzzy_matched_mask = (current_df['PERNR'].notna()) & (current_df['Match Type'] == 'fuzzy_match')
+            self.fuzzy_matched_data = current_df[fuzzy_matched_mask].copy()
+            
             self.update_progress(100, "Clean-up completed successfully!")
             
             # Show results
@@ -984,7 +1225,7 @@ class EmployeeCleanupTool:
             self.root.after(0, lambda: messagebox.showerror("Error", f"Cleanup failed:\n{str(e)}"))
             self.root.after(0, lambda: self.run_btn.config(state="normal"))
             
-    def find_employee_by_name(self, current_name: str, masterlist_df: pd.DataFrame, list_type: str) -> Tuple[Optional[str], Optional[str]]:
+    def find_employee_by_name(self, current_name: str, masterlist_df: pd.DataFrame, list_type: str) -> Tuple[Optional[str], Optional[str], str, float]:
         """
         Find employee by name using fuzzy matching
         
@@ -994,23 +1235,29 @@ class EmployeeCleanupTool:
             list_type: "current" or "resigned" for logging purposes
             
         Returns:
-            Tuple of (employee_number, full_name) or (None, None) if not found
+            Tuple of (employee_number, full_name, match_type, match_score) or (None, None, "no_match", 0.0) if not found
         """
         if masterlist_df is None or masterlist_df.empty:
-            return None, None
+            return None, None, "no_match", 0.0
         
-        # Find name columns in masterlist
-        name_columns = [col for col in masterlist_df.columns if 'name' in col.lower()]
+        # Find name columns in masterlist - prioritize "Full Name" column
+        name_columns = [col for col in masterlist_df.columns if col == 'Full Name']
         if not name_columns:
-            return None, None
+            # Fallback to flexible matching (could be "Name", "Employee Name", etc.)
+            name_columns = [col for col in masterlist_df.columns if 'name' in str(col).lower()]
+        if not name_columns:
+            return None, None, "no_match", 0.0
         
-        # Find PERNR column
-        emp_num_columns = [col for col in masterlist_df.columns if col.upper() == 'PERNR']
+        # Find PERNR column - prioritize "PERNR" then "Pers. Number"
+        emp_num_columns = [col for col in masterlist_df.columns if str(col).upper() == 'PERNR']
+        if not emp_num_columns:
+            # Try "Pers. Number" as alternative
+            emp_num_columns = [col for col in masterlist_df.columns if col == 'Pers. Number']
         if not emp_num_columns:
             # Fallback to old naming convention
-            emp_num_columns = [col for col in masterlist_df.columns if 'employee' in col.lower() and 'number' in col.lower()]
+            emp_num_columns = [col for col in masterlist_df.columns if 'employee' in str(col).lower() and 'number' in str(col).lower()]
         if not emp_num_columns:
-            return None, None
+            return None, None, "no_match", 0.0
         
         name_col = name_columns[0]  # Use first name column found
         emp_num_col = emp_num_columns[0]  # Use first PERNR column found
@@ -1030,12 +1277,12 @@ class EmployeeCleanupTool:
             if pd.notna(row[name_col]) and current_name_clean == masterlist_name:
                 # Convert PERNR to integer, return as string for consistency
                 emp_num = pd.to_numeric(row[emp_num_col], errors='coerce')
-                return str(int(emp_num)) if pd.notna(emp_num) else None, str(row[name_col])
+                return str(int(emp_num)) if pd.notna(emp_num) else None, str(row[name_col]), "exact_match", 100.0
         
         # PRIORITY 2: If no exact match, try fuzzy matching as fallback (if enabled)
         # Only use fuzzy logic when exact matching fails AND fuzzy logic is enabled
         if not self.use_fuzzy_logic:
-            return None, None
+            return None, None, "no_match", 0.0
             
         for idx, row in masterlist_df.iterrows():
             if pd.isna(row[name_col]):
@@ -1062,7 +1309,10 @@ class EmployeeCleanupTool:
                 best_employee_number = str(int(emp_num)) if pd.notna(emp_num) else None
                 best_full_name = masterlist_name
         
-        return best_employee_number, best_full_name
+        if best_employee_number is not None:
+            return best_employee_number, best_full_name, "fuzzy_match", best_score
+        else:
+            return None, None, "no_match", 0.0
     
     def update_progress(self, value, status):
         """Update progress bar and status"""
@@ -1221,11 +1471,13 @@ class EmployeeCleanupTool:
         total = len(self.uploaded_files['current_system'])
         matched = len(self.cleaned_data) if self.cleaned_data is not None else 0
         unmatched = len(self.unmatched_data) if self.unmatched_data is not None else 0
+        fuzzy_matched = len(self.fuzzy_matched_data) if self.fuzzy_matched_data is not None else 0
         
         stats = [
             ("Total Records", total, "#3b82f6"),
             ("Enriched with PERNR", matched, "#059669"),
-            ("Missing PERNR", unmatched, "#ea580c")
+            ("Missing PERNR", unmatched, "#ea580c"),
+            ("Fuzzy Logic Matches", fuzzy_matched, "#8b5cf6")
         ]
         
         for label, value, color in stats:
@@ -1274,7 +1526,7 @@ class EmployeeCleanupTool:
             selector_frame,
             state="readonly",
             width=40,
-            values=["✓ Enriched Data (with PERNRs, Full Names, Resignation Dates & Organizational Data)", "📋 Resigned Users (with Resignation Dates)", "👥 Current Users (Active Employees Only)", "⚠ Missing PERNRs"]
+            values=["✓ Enriched Data (with PERNRs, Full Names, Resignation Dates & Organizational Data)", "📋 Resigned Users (with Resignation Dates)", "👥 Current Users (Active Employees Only)", "🔍 Fuzzy Logic Matches (PERNRs found using fuzzy matching)", "⚠ Missing PERNRs"]
         )
         self.results_selector.pack(side="left")
         self.results_selector.current(0)
@@ -1389,6 +1641,57 @@ class EmployeeCleanupTool:
             pady=8
         ).pack(side="left")
         
+        # Fuzzy matched data export (only show if there are fuzzy matches)
+        fuzzy_count = len(self.fuzzy_matched_data) if self.fuzzy_matched_data is not None else 0
+        if fuzzy_count > 0:
+            fuzzy_frame = tk.LabelFrame(
+                export_frame,
+                text="🔍 Fuzzy Logic Matches",
+                font=("Arial", 10, "bold"),
+                bg="white",
+                fg="#8b5cf6",
+                padx=10,
+                pady=10
+            )
+            fuzzy_frame.pack(side="left", fill="both", expand=True, padx=(5, 0))
+            
+            tk.Label(
+                fuzzy_frame,
+                text=f"{fuzzy_count} records matched using fuzzy logic",
+                font=("Arial", 8),
+                bg="white",
+                fg="#6b7280"
+            ).pack()
+            
+            btn_frame3 = tk.Frame(fuzzy_frame, bg="white")
+            btn_frame3.pack(pady=(10, 0))
+            
+            tk.Button(
+                btn_frame3,
+                text="📊 Export Excel",
+                command=lambda: self.export_data(self.fuzzy_matched_data, "fuzzy_logic_matches", "excel"),
+                bg="#8b5cf6",
+                fg="white",
+                font=("Arial", 9, "bold"),
+                relief="flat",
+                cursor="hand2",
+                padx=15,
+                pady=8
+            ).pack(side="left", padx=(0, 5))
+            
+            tk.Button(
+                btn_frame3,
+                text="📄 Export CSV",
+                command=lambda: self.export_data(self.fuzzy_matched_data, "fuzzy_logic_matches", "csv"),
+                bg="#8b5cf6",
+                fg="white",
+                font=("Arial", 9, "bold"),
+                relief="flat",
+                cursor="hand2",
+                padx=15,
+                pady=8
+            ).pack(side="left")
+        
     def export_data(self, df: pd.DataFrame, filename: str, format_type: str):
         """Export data to file"""
         if df is None or df.empty:
@@ -1396,11 +1699,25 @@ class EmployeeCleanupTool:
             return
             
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Build a clearer default file name using the uploaded current system file as base
+        def build_initial_filename(suggested_label: str, ext: str) -> str:
+            # Try to base the file name on the uploaded Current System file name
+            base_name = "Report"
+            try:
+                if self.file_paths.get('current_system'):
+                    base_name = Path(self.file_paths['current_system']).stem
+            except Exception:
+                pass
+            # Sanitize
+            base_name = re.sub(r"[^A-Za-z0-9 _\-]", "", str(base_name)).strip()
+            label = suggested_label.replace("_", " ").title()
+            return f"{base_name} - {label} - {timestamp}.{ext}"
         
         if format_type == "excel":
             file_path = filedialog.asksaveasfilename(
                 defaultextension=".xlsx",
-                initialfile=f"{filename}_{timestamp}.xlsx",
+                initialfile=build_initial_filename(filename, "xlsx"),
                 filetypes=[("Excel files", "*.xlsx")]
             )
             if file_path:
@@ -1409,7 +1726,7 @@ class EmployeeCleanupTool:
         else:  # csv
             file_path = filedialog.asksaveasfilename(
                 defaultextension=".csv",
-                initialfile=f"{filename}_{timestamp}.csv",
+                initialfile=build_initial_filename(filename, "csv"),
                 filetypes=[("CSV files", "*.csv")]
             )
             if file_path:
@@ -1423,11 +1740,23 @@ class EmployeeCleanupTool:
             return
             
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Build a clearer default file name using the uploaded current system file as base
+        def build_initial_filename(suggested_label: str, ext: str) -> str:
+            base_name = "Report"
+            try:
+                if self.file_paths.get('current_system'):
+                    base_name = Path(self.file_paths['current_system']).stem
+            except Exception:
+                pass
+            base_name = re.sub(r"[^A-Za-z0-9 _\-]", "", str(base_name)).strip()
+            label = suggested_label.replace("_", " ").title()
+            return f"{base_name} - {label} - {timestamp}.{ext}"
         
         if format_type == "excel":
             file_path = filedialog.asksaveasfilename(
                 defaultextension=".xlsx",
-                initialfile=f"{filename}_{timestamp}.xlsx",
+                initialfile=build_initial_filename(filename, "xlsx"),
                 filetypes=[("Excel files", "*.xlsx")]
             )
             if file_path:
@@ -1462,7 +1791,7 @@ class EmployeeCleanupTool:
         else:  # csv - export main data only (CSV doesn't support multiple sheets)
             file_path = filedialog.asksaveasfilename(
                 defaultextension=".csv",
-                initialfile=f"{filename}_{timestamp}.csv",
+                initialfile=build_initial_filename(filename, "csv"),
                 filetypes=[("CSV files", "*.csv")]
             )
             if file_path:
@@ -1582,6 +1911,9 @@ class EmployeeCleanupTool:
         elif "Current" in selected:
             df = self.get_current_users_data(self.cleaned_data) if self.cleaned_data is not None else None
             dataset_name = "Current Users"
+        elif "Fuzzy Logic" in selected:
+            df = self.fuzzy_matched_data
+            dataset_name = "Fuzzy Logic Matches"
         else:
             df = self.unmatched_data
             dataset_name = "Missing PERNRs"
