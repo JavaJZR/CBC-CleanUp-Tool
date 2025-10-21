@@ -140,18 +140,18 @@ class EmployeeCleanupTool:
         instructions = """
 1️⃣ UPLOAD FILES: Upload your Excel (.xlsx, .xls) or CSV files
    • Current System Report (Required) - Latest employee data to enrich
-   • Previous Reference (Required) - Contains User ID → PERNR mapping
+   • Previous Reference (Optional) - Contains User ID → PERNR mapping for faster lookup
    • Masterlist Current (Required) - Active employees with PERNR and Full Name
    • Masterlist Resigned (Required) - Resigned employees with PERNR and Full Name
 
 2️⃣ PREVIEW DATA: Review uploaded files to verify structure and content
 
 3️⃣ CONFIGURE CLEANUP: Add "PERNR", "Full Name (From Masterlist)", "Resignation Date", and Organizational Data columns
-   • PERNR: Looked up by User ID from Previous Reference, with fallback name matching
+   • PERNR: Looked up by User ID from Previous Reference (if provided), with fallback name matching
    • Full Name: Retrieved from Current/Resigned Masterlist using the PERNR
    • Resignation Date: Retrieved from Resigned Masterlist using the PERNR (if employee is resigned)
    • Organizational Data: Position Name, Segment Name, Group Name, Area/Division Name, Department/Branch from Current Masterlist
-   • Fallback: If User ID lookup fails, matches "Username (Full Name)" with masterlist names
+   • Fallback: If User ID lookup fails or no Previous Reference, matches "Username (Full Name)" with masterlist names
    • Fuzzy Logic: Optional fuzzy string matching for name variations (can be disabled for exact matches only)
 
 4️⃣ EXPORT RESULTS: Download enriched data (with PERNRs, Full Names, Resignation Dates, and Organizational Data) and unmatched records
@@ -212,7 +212,7 @@ class EmployeeCleanupTool:
         self.upload_cards = {}
         file_configs = [
             ('current_system', 'Current System Report', 'Latest employee data to enrich with Employee Numbers and Full Names', 'Required'),
-            ('previous_reference', 'Previous Reference', 'Contains User ID to Employee Number mapping', 'Required'),
+            ('previous_reference', 'Previous Reference', 'Contains User ID to Employee Number mapping (Optional - for faster User ID lookup)', 'Optional'),
             ('masterlist_current', 'Masterlist – Current', 'Active employees with Employee Number and Full Name', 'Required'),
             ('masterlist_resigned', 'Masterlist – Resigned', 'Resigned employees with Employee Number and Full Name', 'Required')
         ]
@@ -268,7 +268,7 @@ class EmployeeCleanupTool:
         desc_label.pack(padx=10, pady=(0, 10), anchor="w", fill="x")
         
         # Requirement badge
-        req_color = "#dc2626" if requirement == "Required" else "#6b7280"
+        req_color = "#dc2626" if requirement == "Required" else "#059669"
         req_label = tk.Label(
             card,
             text=requirement,
@@ -647,8 +647,6 @@ class EmployeeCleanupTool:
         missing_files = []
         if self.uploaded_files['current_system'] is None:
             missing_files.append('Current System Report')
-        if self.uploaded_files['previous_reference'] is None:
-            missing_files.append('Previous Reference')
         if self.uploaded_files['masterlist_current'] is None:
             missing_files.append('Masterlist – Current')
         if self.uploaded_files['masterlist_resigned'] is None:
@@ -966,6 +964,9 @@ class EmployeeCleanupTool:
             masterlist_current_df = self.uploaded_files['masterlist_current'].copy() if self.uploaded_files['masterlist_current'] is not None else None
             masterlist_resigned_df = self.uploaded_files['masterlist_resigned'].copy() if self.uploaded_files['masterlist_resigned'] is not None else None
             
+            # Check if Previous Reference is available
+            has_previous_reference = previous_df is not None and not previous_df.empty
+            
             self.update_progress(10, "Loading and validating data...")
             
             # Initialize new columns
@@ -981,7 +982,8 @@ class EmployeeCleanupTool:
             current_df['Match Score'] = None  # Track fuzzy match score
             
             fuzzy_status = "with fuzzy matching" if self.use_fuzzy_logic else "exact matching only"
-            self.update_progress(20, f"Looking up PERNRs, Full Names, Resignation Dates, and Organizational Data (User ID lookup + Name fallback {fuzzy_status})...")
+            lookup_method = "User ID lookup + Name fallback" if has_previous_reference else "Name matching only"
+            self.update_progress(20, f"Looking up PERNRs, Full Names, Resignation Dates, and Organizational Data ({lookup_method} {fuzzy_status})...")
             
             # Detect columns for lookup once (outside the loop for performance)
             user_id_current, user_id_previous, pernr_previous = self.detect_lookup_columns()
@@ -993,9 +995,9 @@ class EmployeeCleanupTool:
                 match_type = "no_match"  # Initialize match tracking
                 match_score = 0.0
                 
-                # Step 1: Lookup PERNR by User ID from previous_reference
+                # Step 1: Lookup PERNR by User ID from previous_reference (if available)
                 # This is the primary lookup method with flexible column detection
-                if previous_df is not None and user_id_current and user_id_previous and pernr_previous:
+                if has_previous_reference and user_id_current and user_id_previous and pernr_previous:
                     user_id = row.get(user_id_current)
                     if pd.notna(user_id):
                         match = previous_df[previous_df[user_id_previous] == user_id]
@@ -1018,7 +1020,7 @@ class EmployeeCleanupTool:
                             # If PERNR is invalid (like "cant find"), employee_number remains None
                             # and will trigger name matching fallback
                 
-                # Step 2: Fallback lookup using name matching if User ID lookup failed
+                # Step 2: Lookup using name matching (if User ID lookup failed or no Previous Reference)
                 # Priority: 1) Exact name match, 2) Fuzzy matching (if exact fails)
                 # This finds PERNR by comparing "Username (Full Name)" with "Full Name" from masterlists
                 # Order: Current masterlist first, then resigned masterlist
@@ -1499,7 +1501,7 @@ class EmployeeCleanupTool:
         
         # If it has any content and is not an invalid indicator, consider it valid
         return True
-    
+        
     def show_results_section(self):
         """Show results section"""
         if self.results_frame:
