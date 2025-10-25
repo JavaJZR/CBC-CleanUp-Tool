@@ -48,6 +48,9 @@ class MainController:
         
         # Setup view callbacks
         self.setup_view_callbacks()
+        
+        # Load persisted masterlist files if they exist
+        self.load_persisted_masterlists()
     
     def setup_view_callbacks(self):
         """Setup callbacks between views and controllers"""
@@ -74,8 +77,45 @@ class MainController:
     
     def preview_file(self, file_type: str):
         """Preview a specific file"""
-        if self.current_step >= 2:
-            self.main_window.show_preview_section()
+        # Always show preview section when preview is requested
+        self.main_window.show_preview_section()
+        
+        # Select the specific file in the preview
+        if self.main_window.preview_view:
+            self.main_window.preview_view.select_file_for_preview(file_type)
+    
+    def clear_system_reports(self):
+        """Clear only system report files (keep masterlists)"""
+        self.employee_dataset.clear_system_reports()
+        
+        # Reset UI components for system reports only
+        if self.main_window.file_upload_view:
+            self.main_window.file_upload_view.reset_system_report_cards()
+        
+        # Hide all sections except file upload
+        self.current_step = 1
+        if self.main_window:
+            # Hide preview section
+            if self.main_window.preview_view and self.main_window.preview_view.preview_frame:
+                self.main_window.preview_view.preview_frame.destroy()
+                self.main_window.preview_view.preview_frame = None
+            
+            # Hide cleanup section
+            if self.main_window.cleanup_view and self.main_window.cleanup_view.cleanup_frame:
+                self.main_window.cleanup_view.cleanup_frame.destroy()
+                self.main_window.cleanup_view.cleanup_frame = None
+            # Reset cleanup state if cleanup view exists
+            elif self.main_window.cleanup_view:
+                self.main_window.cleanup_view.reset_cleanup_state()
+            
+            # Hide results section
+            if self.main_window.results_view and self.main_window.results_view.results_frame:
+                self.main_window.results_view.results_frame.destroy()
+                self.main_window.results_view.results_frame = None
+        
+        # Show success message
+        if self.main_window.file_upload_view:
+            self.main_window.file_upload_view.show_success("System reports cleared. Masterlists remain loaded.")
     
     def clear_all_files(self):
         """Clear all uploaded files and reset the UI"""
@@ -140,6 +180,36 @@ class MainController:
         """Update progress bar and status"""
         if self.main_window:
             self.main_window.update_progress(value, status)
+    
+    def load_persisted_masterlists(self):
+        """Load persisted masterlist files automatically on startup"""
+        try:
+            # Load masterlist files if they were persisted
+            files_loaded = self.employee_dataset.load_persisted_masterlists(self.file_handler)
+            
+            if files_loaded:
+                # Update UI to show loaded files
+                self.update_ui_with_persisted_files()
+                
+                # Check if ready for next step
+                if self.employee_dataset.is_ready_for_processing():
+                    self.show_preview_section()
+        except Exception as e:
+            # Silently fail - user can upload files manually
+            pass
+    
+    def update_ui_with_persisted_files(self):
+        """Update UI to show persisted masterlist files"""
+        for file_type in ['masterlist_current', 'masterlist_resigned']:
+            file_path = self.employee_dataset.file_paths.get(file_type)
+            if file_path:
+                try:
+                    file_name, _, row_count, col_count = self.file_handler.get_file_info(file_path)
+                    self.main_window.file_upload_view.update_file_card(
+                        file_type, file_name, row_count, col_count
+                    )
+                except Exception:
+                    pass
     
     def run(self):
         """Start the application"""

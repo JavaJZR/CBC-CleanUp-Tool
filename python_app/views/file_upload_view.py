@@ -117,10 +117,15 @@ class FileUploadView:
         btn_frame = tk.Frame(card, bg="#f9fafb")
         btn_frame.pack(fill="x", padx=10, pady=(0, 10))
         
+        # Determine button text based on file type
+        # Masterlists show "Update" instead of "Upload" when already loaded
+        is_masterlist = key in ['masterlist_current', 'masterlist_resigned']
+        button_text = "🔄 Update" if is_masterlist else "📁 Upload"
+        
         # Upload button
         upload_btn = tk.Button(
             btn_frame,
-            text="📁 Upload",
+            text=button_text,
             command=lambda k=key: self.upload_file(k),
             bg="#dc2626",
             fg="white",
@@ -151,6 +156,8 @@ class FileUploadView:
         # Store references for later updates
         card.file_label = file_label
         card.preview_btn = preview_btn
+        card.upload_btn = upload_btn
+        card.is_masterlist = is_masterlist
         
         return card
     
@@ -159,6 +166,22 @@ class FileUploadView:
         clear_button_frame = tk.Frame(self.upload_frame, bg="white")
         clear_button_frame.pack(fill="x", pady=(15, 0))
         
+        # Button to clear only system reports
+        clear_system_btn = tk.Button(
+            clear_button_frame,
+            text="🗑️ Clear System Reports",
+            command=self.clear_system_reports,
+            bg="#f59e0b",
+            fg="white",
+            font=("Arial", 9, "bold"),
+            relief="flat",
+            cursor="hand2",
+            padx=20,
+            pady=8
+        )
+        clear_system_btn.pack(side="right", padx=(0, 10))
+        
+        # Button to clear all files including masterlists
         clear_all_btn = tk.Button(
             clear_button_frame,
             text="🗑️ Clear All Files",
@@ -194,11 +217,21 @@ class FileUploadView:
         if hasattr(self, 'controller') and self.controller:
             self.controller.preview_file(file_type)
     
+    def clear_system_reports(self):
+        """Clear only system report files (keep masterlists)"""
+        confirm = messagebox.askyesno(
+            "Clear System Reports",
+            "Are you sure you want to clear Current System Report and Previous Reference?\n\nMasterlist files will remain loaded."
+        )
+        
+        if confirm and hasattr(self, 'controller') and self.controller:
+            self.controller.clear_system_reports()
+    
     def clear_all_files(self):
         """Clear all uploaded files and reset the UI"""
         confirm = messagebox.askyesno(
             "Clear All Files",
-            "Are you sure you want to clear all uploaded files?\n\nThis will reset the application."
+            "Are you sure you want to clear all uploaded files?\n\nThis will reset the application and clear masterlists."
         )
         
         if confirm and hasattr(self, 'controller') and self.controller:
@@ -212,6 +245,10 @@ class FileUploadView:
             fg="#059669"
         )
         card.preview_btn.config(state="normal")
+        
+        # Update button text to "Update" for masterlists after first upload
+        if card.is_masterlist:
+            card.upload_btn.config(text="🔄 Update")
     
     def reset_file_card(self, file_type: str):
         """Reset file card to initial state"""
@@ -221,6 +258,18 @@ class FileUploadView:
             fg="#9ca3af"
         )
         card.preview_btn.config(state="disabled")
+        
+        # Reset button text for masterlists
+        if card.is_masterlist:
+            card.upload_btn.config(text="🔄 Update")
+        else:
+            card.upload_btn.config(text="📁 Upload")
+    
+    def reset_system_report_cards(self):
+        """Reset only system report file cards"""
+        for file_type in ['current_system', 'previous_reference']:
+            if file_type in self.upload_cards:
+                self.reset_file_card(file_type)
     
     def reset_all_cards(self):
         """Reset all file cards"""

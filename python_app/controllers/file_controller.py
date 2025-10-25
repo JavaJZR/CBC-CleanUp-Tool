@@ -64,6 +64,10 @@ class FileController:
         # Store file path
         dataset.file_paths[file_type] = file_path
         
+        # Persist masterlist paths for cross-session use
+        if file_type in ['masterlist_current', 'masterlist_resigned']:
+            dataset.save_masterlist_path(file_type, file_path)
+        
         # Store dataframe
         if file_type == 'current_system':
             dataset.current_system = df

@@ -53,7 +53,7 @@ class MatchingEngine:
 
     def find_employee_by_user_id(self, user_id: str, previous_df: pd.DataFrame) -> Optional[str]:
         """Find PERNR using User ID from previous reference"""
-        user_id_col = self._find_column(previous_df, ['user', 'id', 'sysid', 'username'])
+        user_id_col = self._find_column(previous_df, ['user', 'id', 'sysid', 'username', 'abbreviation'])
         pernr_col = self._find_column(previous_df, ['pernr', 'employee number'])
         
         if user_id_col and pernr_col:

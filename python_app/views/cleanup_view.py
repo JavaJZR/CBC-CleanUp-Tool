@@ -24,6 +24,7 @@ class CleanupView:
         self.progress_bar: Optional[ttk.Progressbar] = None
         self.status_label: Optional[tk.Label] = None
         self.run_btn: Optional[tk.Button] = None
+        self.cancel_btn: Optional[tk.Button] = None
     
     def show(self):
         """Show cleanup configuration section"""
@@ -162,8 +163,12 @@ class CleanupView:
         )
         threshold_desc.pack(side="left", padx=(10, 0))
         
+        # Button frame for run and cancel buttons
+        button_frame = tk.Frame(run_frame, bg="white")
+        button_frame.pack(pady=(10, 0))
+        
         self.run_btn = tk.Button(
-            run_frame,
+            button_frame,
             text="🚀 Run Clean-Up Process",
             command=self.run_cleanup,
             bg="#dc2626",
@@ -174,7 +179,23 @@ class CleanupView:
             padx=30,
             pady=15
         )
-        self.run_btn.pack(pady=(10, 0))
+        self.run_btn.pack(side="left", padx=(0, 10))
+        
+        self.cancel_btn = tk.Button(
+            button_frame,
+            text="❌ Cancel",
+            command=self.cancel_cleanup,
+            bg="#6b7280",
+            fg="white",
+            font=("Arial", 11, "bold"),
+            relief="flat",
+            cursor="hand2",
+            padx=30,
+            pady=15,
+            state="normal"
+        )
+        # Hide cancel button by default
+        self.cancel_btn.pack_forget()
         
         # Progress frame
         progress_frame = tk.Frame(self.cleanup_frame, bg="white")
@@ -221,6 +242,8 @@ class CleanupView:
         """Run the cleanup process"""
         if self.run_btn:
             self.run_btn.config(state="disabled")
+        if self.cancel_btn:
+            self.cancel_btn.pack(side="left")  # Show cancel button
         if self.progress_bar:
             self.progress_bar['value'] = 0
         if self.status_label:
@@ -234,6 +257,11 @@ class CleanupView:
         if hasattr(self, 'controller') and self.controller:
             self.controller.start_cleanup(use_fuzzy_logic, threshold)
     
+    def cancel_cleanup(self):
+        """Cancel the cleanup process"""
+        if hasattr(self, 'controller') and self.controller:
+            self.controller.processing_controller.cancel_cleanup()
+    
     def update_progress(self, value: float, status: str):
         """Update progress bar and status"""
         if self.progress_bar:
@@ -245,6 +273,8 @@ class CleanupView:
         """Reset run button to normal state"""
         if self.run_btn:
             self.run_btn.config(state="normal")
+        if self.cancel_btn:
+            self.cancel_btn.pack_forget()  # Hide cancel button
     
     def reset_cleanup_state(self):
         """Reset cleanup view to initial state"""
@@ -259,6 +289,8 @@ class CleanupView:
         # Reset run button
         if self.run_btn:
             self.run_btn.config(state="normal")
+        if self.cancel_btn:
+            self.cancel_btn.pack_forget()  # Hide cancel button
         
         # Reset fuzzy logic to default
         if self.fuzzy_var:

@@ -85,7 +85,7 @@ class FileHandler:
         expected_keywords = [
             'pernr', 'pers. number', 'employee number', 'emp number',
             'full name', 'name', 'employee name', 'username',
-            'user id', 'userid', 'sysid', 'department', 'position',
+            'user id', 'userid', 'sysid', 'abbreviation', 'department', 'position',
             'resignation', 'date', 'effectivity'
         ]
         
@@ -98,20 +98,63 @@ class FileHandler:
     
     @staticmethod
     def export_to_excel(df: pd.DataFrame, file_path: str, multi_sheet_data: Optional[dict] = None):
-        """Export DataFrame to Excel with optional multi-sheet support"""
+        """Export DataFrame to Excel with optional multi-sheet support and date formatting"""
         if multi_sheet_data:
             # Export with multiple sheets
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
                 for sheet_name, sheet_df in multi_sheet_data.items():
                     if sheet_df is not None and not sheet_df.empty:
                         sheet_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                        
+                        # Apply date formatting to Resignation Date column if it exists
+                        if 'Resignation Date' in sheet_df.columns:
+                            FileHandler._format_resignation_date_column(writer, sheet_name, sheet_df)
                     else:
                         # Create empty sheet with headers if no data
                         empty_df = pd.DataFrame(columns=df.columns if df is not None else [])
                         empty_df.to_excel(writer, sheet_name=sheet_name, index=False)
         else:
             # Single sheet export
-            df.to_excel(file_path, index=False)
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                df.to_excel(writer, sheet_name='Sheet1', index=False)
+                
+                # Apply date formatting to Resignation Date column if it exists
+                if 'Resignation Date' in df.columns:
+                    FileHandler._format_resignation_date_column(writer, 'Sheet1', df)
+    
+    @staticmethod
+    def _format_resignation_date_column(writer, sheet_name: str, df: pd.DataFrame):
+        """Format the Resignation Date column as date type in Excel"""
+        from openpyxl.styles import numbers
+        
+        workbook = writer.book
+        worksheet = writer.sheets[sheet_name]
+        
+        # Find the column index for "Resignation Date"
+        column_index = None
+        for col_num, column_title in enumerate(df.columns, 1):
+            if column_title == 'Resignation Date':
+                column_index = col_num
+                break
+        
+        if column_index is not None:
+            # Apply date format to all cells in the Resignation Date column (starting from row 2 to skip header)
+            date_format = numbers.FORMAT_DATE_XLSX14  # This is the date format 'mm-dd-yy'
+            
+            for row_num in range(2, len(df) + 2):  # +2 because Excel is 1-indexed and has header
+                cell = worksheet.cell(row=row_num, column=column_index)
+                
+                # Convert string date to datetime if it's not None/empty
+                if cell.value and str(cell.value).strip():
+                    try:
+                        # Parse the MM/DD/YYYY format
+                        from datetime import datetime
+                        date_obj = datetime.strptime(str(cell.value), '%m/%d/%Y')
+                        cell.value = date_obj
+                        cell.number_format = date_format
+                    except (ValueError, TypeError):
+                        # If date parsing fails, leave as string
+                        pass
     
     @staticmethod
     def export_to_csv(df: pd.DataFrame, file_path: str):

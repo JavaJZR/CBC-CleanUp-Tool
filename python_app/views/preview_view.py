@@ -116,6 +116,22 @@ class PreviewView:
             self.preview_selector.current(0)
             self.update_preview()
     
+    def select_file_for_preview(self, file_type: str):
+        """Select a specific file for preview"""
+        file_names = {
+            'current_system': 'Current System Report',
+            'previous_reference': 'Previous Reference',
+            'masterlist_current': 'Masterlist – Current',
+            'masterlist_resigned': 'Masterlist – Resigned'
+        }
+        
+        display_name = file_names.get(file_type)
+        if display_name and self.preview_selector:
+            # Set the combobox value to the selected file
+            self.preview_selector.set(display_name)
+            # Update the preview to show the selected file
+            self.update_preview()
+    
     def on_file_selected(self, event=None):
         """Handle file selection change"""
         self.update_preview()
@@ -194,13 +210,18 @@ class PreviewView:
             values = [str(val) for val in row]
             tree.insert("", "end", text=str(idx + 1), values=values)
             
-        # Pack elements
+        # Layout elements with grid
+        # Treeview takes most space
         tree.grid(row=0, column=0, sticky="nsew")
+        # Vertical scrollbar on the right
         y_scroll.grid(row=0, column=1, sticky="ns")
+        # Horizontal scrollbar at the bottom (but not under vertical scrollbar)
         x_scroll.grid(row=1, column=0, sticky="ew")
         
-        table_container.grid_rowconfigure(0, weight=1)
-        table_container.grid_columnconfigure(0, weight=1)
+        # Configure grid weights
+        table_container.grid_rowconfigure(0, weight=1)  # Tree takes all vertical space
+        table_container.grid_columnconfigure(0, weight=1)  # Tree takes all horizontal space
+        table_container.grid_columnconfigure(1, weight=0)  # Scrollbar takes only needed space
         
         # Info label
         info_label = tk.Label(
