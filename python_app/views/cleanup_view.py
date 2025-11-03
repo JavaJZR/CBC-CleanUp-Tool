@@ -25,6 +25,19 @@ class CleanupView:
         self.status_label: Optional[tk.Label] = None
         self.run_btn: Optional[tk.Button] = None
         self.cancel_btn: Optional[tk.Button] = None
+        
+        # Column selection UI components
+        self.custom_column_var: Optional[tk.BooleanVar] = None
+        self.current_user_id_var: Optional[tk.StringVar] = None
+        self.previous_user_id_var: Optional[tk.StringVar] = None
+        self.previous_pernr_var: Optional[tk.StringVar] = None
+        self.current_full_name_var: Optional[tk.StringVar] = None
+        self.current_user_id_combo: Optional[ttk.Combobox] = None
+        self.previous_user_id_combo: Optional[ttk.Combobox] = None
+        self.previous_pernr_combo: Optional[ttk.Combobox] = None
+        self.current_full_name_combo: Optional[ttk.Combobox] = None
+        self.column_selection_frame: Optional[tk.Frame] = None
+        self.full_name_selection_frame: Optional[tk.Frame] = None
     
     def show(self):
         """Show cleanup configuration section"""
@@ -62,6 +75,9 @@ class CleanupView:
             justify="left"
         )
         desc_label.pack(anchor="w", pady=(0, 15))
+        
+        # Column Selection Frame
+        self.create_column_selection_frame()
         
         # Controls frame
         controls_frame = tk.Frame(self.cleanup_frame, bg="white")
@@ -112,9 +128,22 @@ class CleanupView:
         )
         fuzzy_desc.pack(side="left", padx=(10, 0))
         
-        # Threshold control frame
+        # Threshold control frame (created before Full Name frame so we can pack before it)
         threshold_frame = tk.Frame(run_frame, bg="white")
         threshold_frame.pack(fill="x", pady=(10, 0))
+        
+        # Full Name Column Selection (shown only when fuzzy matching is enabled)
+        self.full_name_selection_frame = tk.Frame(run_frame, bg="white")
+        self.create_full_name_selection_controls(self.full_name_selection_frame)
+        
+        # Store reference to threshold_frame for proper positioning
+        self.threshold_frame_ref = threshold_frame
+        
+        # Initially show/hide based on fuzzy matching state
+        if self.fuzzy_var.get():
+            self.full_name_selection_frame.pack(fill="x", pady=(10, 0), before=threshold_frame)
+        else:
+            self.full_name_selection_frame.pack_forget()
         
         # Threshold label
         threshold_label = tk.Label(
@@ -217,6 +246,242 @@ class CleanupView:
         )
         self.status_label.pack(pady=(5, 0))
     
+    def create_full_name_selection_controls(self, parent_frame):
+        """Create Full Name column selection controls inside the Execute Clean-Up frame"""
+        # Initialize Full Name column variable
+        self.current_full_name_var = tk.StringVar()
+        
+        # Description
+        desc_label = tk.Label(
+            parent_frame,
+            text="Select Full Name Column for Fuzzy Matching:",
+            font=("Arial", 8, "bold"),
+            bg="white",
+            fg="#374151",
+            justify="left"
+        )
+        desc_label.pack(anchor="w", pady=(0, 5))
+        
+        # Load column headers for Current System Report
+        try:
+            headers = self.controller.get_column_headers()
+            current_columns = headers.get('current_system', [])
+            
+            # Combo box frame
+            combo_frame = tk.Frame(parent_frame, bg="white")
+            combo_frame.pack(fill="x")
+            
+            # Add hint
+            hint_label = tk.Label(
+                combo_frame,
+                text="(Look for columns like 'Full Name', 'Name', 'Username', 'User Description')",
+                font=("Arial", 7),
+                bg="white",
+                fg="#9ca3af"
+            )
+            hint_label.pack(anchor="w")
+            
+            self.current_full_name_combo = ttk.Combobox(
+                combo_frame,
+                textvariable=self.current_full_name_var,
+                values=current_columns,
+                state="readonly",
+                width=40
+            )
+            self.current_full_name_combo.pack(anchor="w", pady=(2, 0))
+            
+            # Load current configuration if available
+            _, _, configured_full_name = self.controller.employee_dataset.get_current_system_config()
+            if configured_full_name and configured_full_name in current_columns:
+                self.current_full_name_var.set(configured_full_name)
+            else:
+                # Auto-select first matching column
+                for col in current_columns:
+                    col_lower = str(col).lower()
+                    if any(keyword in col_lower for keyword in ['full name', 'name', 'username', 'user description', 'description', 'user desc', 'desc']):
+                        self.current_full_name_var.set(str(col))
+                        break
+                else:
+                    # If no match, select first column if available
+                    if len(current_columns) > 0:
+                        self.current_full_name_var.set(str(current_columns[0]))
+        except Exception as e:
+            # If there's an error loading headers, show empty list
+            pass
+    
+    def create_column_selection_frame(self):
+        """Create column selection configuration frame"""
+        self.column_selection_frame = tk.LabelFrame(
+            self.cleanup_frame,
+            text="🔧 Column Selection for PERNR Lookup",
+            font=("Arial", 10, "bold"),
+            bg="white",
+            fg="#7c3aed",
+            padx=10,
+            pady=10
+        )
+        self.column_selection_frame.pack(fill="x", pady=(0, 15))
+        
+        # Description
+        desc_label = tk.Label(
+            self.column_selection_frame,
+            text="Choose which columns to use for User ID matching between Current System Report and Previous Reference.\nAll columns from Previous Reference are available for selection - look for User ID and PERNR columns.",
+            font=("Arial", 8),
+            bg="white",
+            fg="#6b7280",
+            justify="left"
+        )
+        desc_label.pack(anchor="w", pady=(0, 10))
+        
+        # Enable/Disable custom column selection
+        self.custom_column_var = tk.BooleanVar(value=False)
+        custom_checkbox = tk.Checkbutton(
+            self.column_selection_frame,
+            text="Enable Custom Column Selection",
+            variable=self.custom_column_var,
+            command=self.toggle_column_selection,
+            font=("Arial", 9, "bold"),
+            bg="white",
+            fg="#374151"
+        )
+        custom_checkbox.pack(anchor="w", pady=(0, 10))
+        
+        # Column selection controls frame
+        self.column_controls_frame = tk.Frame(self.column_selection_frame, bg="white")
+        self.column_controls_frame.pack(fill="x")
+        
+        # Initialize column selection variables
+        self.current_user_id_var = tk.StringVar()
+        self.previous_user_id_var = tk.StringVar()
+        self.previous_pernr_var = tk.StringVar()
+        
+        # Load column headers
+        self.load_column_headers()
+        
+        # Initially hide the column controls
+        self.column_controls_frame.pack_forget()
+    
+    def load_column_headers(self):
+        """Load column headers from uploaded files"""
+        try:
+            headers = self.controller.get_column_headers()
+            
+            # Create comboboxes for column selection
+            # Current System Report - User ID column
+            current_frame = tk.Frame(self.column_controls_frame, bg="white")
+            current_frame.pack(fill="x", pady=(0, 5))
+            
+            tk.Label(
+                current_frame,
+                text="Current System Report - User ID Column:",
+                font=("Arial", 8, "bold"),
+                bg="white",
+                fg="#374151"
+            ).pack(anchor="w")
+            
+            # Add hint for current system
+            hint_label1 = tk.Label(
+                current_frame,
+                text="(Look for columns like 'User ID', 'Username', 'SysID', 'Abbreviation')",
+                font=("Arial", 7),
+                bg="white",
+                fg="#9ca3af"
+            )
+            hint_label1.pack(anchor="w")
+            
+            self.current_user_id_combo = ttk.Combobox(
+                current_frame,
+                textvariable=self.current_user_id_var,
+                values=headers.get('current_system', []),
+                state="readonly",
+                width=40
+            )
+            self.current_user_id_combo.pack(anchor="w", pady=(2, 0))
+            
+            # Previous System Report - User ID column
+            previous_user_frame = tk.Frame(self.column_controls_frame, bg="white")
+            previous_user_frame.pack(fill="x", pady=(5, 5))
+            
+            tk.Label(
+                previous_user_frame,
+                text="Previous Reference - User ID Column:",
+                font=("Arial", 8, "bold"),
+                bg="white",
+                fg="#374151"
+            ).pack(anchor="w")
+            
+            # Add hint for previous user ID
+            hint_label2 = tk.Label(
+                previous_user_frame,
+                text="(Look for columns like 'User ID', 'Username', 'SysID', 'Abbreviation' - ALL columns shown)",
+                font=("Arial", 7),
+                bg="white",
+                fg="#9ca3af"
+            )
+            hint_label2.pack(anchor="w")
+            
+            self.previous_user_id_combo = ttk.Combobox(
+                previous_user_frame,
+                textvariable=self.previous_user_id_var,
+                values=headers.get('previous_system', []),
+                state="readonly",
+                width=40
+            )
+            self.previous_user_id_combo.pack(anchor="w", pady=(2, 0))
+            
+            # Previous System Report - PERNR column
+            previous_pernr_frame = tk.Frame(self.column_controls_frame, bg="white")
+            previous_pernr_frame.pack(fill="x", pady=(5, 0))
+            
+            tk.Label(
+                previous_pernr_frame,
+                text="Previous Reference - PERNR Column:",
+                font=("Arial", 8, "bold"),
+                bg="white",
+                fg="#374151"
+            ).pack(anchor="w")
+            
+            # Add hint for PERNR column
+            hint_label3 = tk.Label(
+                previous_pernr_frame,
+                text="(Look for columns like 'PERNR', 'Employee Number', 'Pers. Number' - ALL columns shown)",
+                font=("Arial", 7),
+                bg="white",
+                fg="#9ca3af"
+            )
+            hint_label3.pack(anchor="w")
+            
+            self.previous_pernr_combo = ttk.Combobox(
+                previous_pernr_frame,
+                textvariable=self.previous_pernr_var,
+                values=headers.get('previous_system', []),
+                state="readonly",
+                width=40
+            )
+            self.previous_pernr_combo.pack(anchor="w", pady=(2, 0))
+            
+            # Load current custom column settings
+            custom_columns = self.controller.get_custom_lookup_columns()
+            if custom_columns['current_user_id']:
+                self.current_user_id_var.set(custom_columns['current_user_id'])
+            if custom_columns['previous_user_id']:
+                self.previous_user_id_var.set(custom_columns['previous_user_id'])
+            if custom_columns['previous_pernr']:
+                self.previous_pernr_var.set(custom_columns['previous_pernr'])
+            
+        except Exception as e:
+            # If there's an error loading headers, show empty lists
+            pass
+    
+    def toggle_column_selection(self):
+        """Toggle column selection controls visibility"""
+        if self.custom_column_var.get():
+            self.column_controls_frame.pack(fill="x")
+        else:
+            self.column_controls_frame.pack_forget()
+            # Clear custom columns when disabled
+            self.controller.clear_custom_lookup_columns()
+    
     def update_threshold(self, value):
         """Update threshold value and label"""
         threshold = int(float(value))
@@ -226,6 +491,17 @@ class CleanupView:
     def toggle_fuzzy_logic(self):
         """Toggle fuzzy logic option"""
         use_fuzzy = self.fuzzy_var.get()
+        
+        # Show/hide Full Name column selection based on fuzzy logic
+        if self.full_name_selection_frame:
+            if use_fuzzy:
+                # Pack before threshold_frame to maintain correct order
+                if hasattr(self, 'threshold_frame_ref'):
+                    self.full_name_selection_frame.pack(fill="x", pady=(10, 0), before=self.threshold_frame_ref)
+                else:
+                    self.full_name_selection_frame.pack(fill="x", pady=(10, 0))
+            else:
+                self.full_name_selection_frame.pack_forget()
         
         # Enable/disable threshold controls based on fuzzy logic
         if self.threshold_slider:
@@ -252,6 +528,30 @@ class CleanupView:
         # Get current settings
         use_fuzzy_logic = self.fuzzy_var.get() if self.fuzzy_var else True
         threshold = int(self.threshold_var.get()) if self.threshold_var else 80
+        
+        # Save Full Name column selection
+        current_full_name = self.current_full_name_var.get() if self.current_full_name_var else None
+        if current_full_name:
+            # Update the dataset configuration with the selected Full Name column
+            header_row, user_id_column, _ = self.controller.employee_dataset.get_current_system_config()
+            self.controller.employee_dataset.set_current_system_config(header_row, user_id_column, current_full_name)
+        
+        # Save custom column selections if enabled
+        if self.custom_column_var and self.custom_column_var.get():
+            current_user_id = self.current_user_id_var.get() if self.current_user_id_var else None
+            previous_user_id = self.previous_user_id_var.get() if self.previous_user_id_var else None
+            previous_pernr = self.previous_pernr_var.get() if self.previous_pernr_var else None
+            
+            # Only set columns that have values
+            if current_user_id or previous_user_id or previous_pernr:
+                self.controller.set_custom_lookup_columns(current_user_id, previous_user_id, previous_pernr)
+            # Also update the dataset with the selected User ID column
+            if current_user_id:
+                header_row, _, full_name_column = self.controller.employee_dataset.get_current_system_config()
+                self.controller.employee_dataset.set_current_system_config(header_row, current_user_id, full_name_column)
+        else:
+            # Clear custom columns if disabled
+            self.controller.clear_custom_lookup_columns()
         
         # Start cleanup process
         if hasattr(self, 'controller') and self.controller:
@@ -305,3 +605,19 @@ class CleanupView:
         # Reset threshold slider state
         if self.threshold_slider:
             self.threshold_slider.config(state="normal")
+        
+        # Reset column selection
+        if self.custom_column_var:
+            self.custom_column_var.set(False)
+        if self.column_controls_frame:
+            self.column_controls_frame.pack_forget()
+        
+        # Clear custom columns
+        if hasattr(self, 'controller') and self.controller:
+            self.controller.clear_custom_lookup_columns()
+    
+    def refresh_column_headers(self):
+        """Refresh column headers when files are uploaded"""
+        if self.column_selection_frame and self.custom_column_var and self.custom_column_var.get():
+            # Reload column headers
+            self.load_column_headers()

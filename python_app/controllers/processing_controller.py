@@ -65,8 +65,22 @@ class ProcessingController:
             lookup_method = "User ID lookup + Name fallback" if has_previous_reference else "Name matching only"
             self.main_controller.update_progress(20, f"Looking up PERNRs, Full Names, Resignation Dates, and Organizational Data ({lookup_method} {fuzzy_status})...")
             
+            # Get configured columns from dataset (if set)
+            dataset_header_row, dataset_user_id_column, dataset_full_name_column = dataset.get_current_system_config()
+            
             # Detect columns for lookup once (outside the loop for performance)
-            user_id_current, user_id_previous, pernr_previous = self.detect_lookup_columns(current_df, previous_df)
+            # Use configured User ID column if available, otherwise auto-detect
+            user_id_current, user_id_previous, pernr_previous = self.detect_lookup_columns(
+                current_df, previous_df, dataset_user_id_column
+            )
+            
+            # Debug: Show which columns are being used for lookup
+            print(f"\n=== COLUMN LOOKUP DEBUG ===")
+            print(f"Current System User ID Column: {user_id_current} {'(user selected)' if dataset_user_id_column else '(auto-detected)'}")
+            print(f"Current System Full Name Column: {dataset_full_name_column} {'(user selected)' if dataset_full_name_column else '(auto-detected)'}")
+            print(f"Previous Reference User ID Column: {user_id_previous}")
+            print(f"Previous Reference PERNR Column: {pernr_previous}")
+            print(f"=============================\n")
             
             # Process each row to add PERNR, Full Name, Resignation Date, and Organizational Data
             rows_processed = 0
@@ -113,10 +127,18 @@ class ProcessingController:
                 # Step 2: Lookup using name matching (if User ID lookup failed or no Previous Reference)
                 if employee_number is None:
                     # Get the current system's username/full name for comparison
+                    # Use configured Full Name column if available, otherwise auto-detect
                     current_name = None
-                    name_columns_current = [col for col in current_df.columns if 'username' in str(col).lower() or 'name' in str(col).lower()]
-                    if name_columns_current:
-                        current_name = row.get(name_columns_current[0])
+                    
+                    # Check if configured Full Name column exists and use it
+                    if dataset_full_name_column and dataset_full_name_column in current_df.columns:
+                        current_name = row.get(dataset_full_name_column)
+                    else:
+                        # Fall back to auto-detection
+                        name_columns_current = [col for col in current_df.columns 
+                                              if any(keyword in str(col).lower() for keyword in ['username', 'name', 'description', 'desc'])]
+                        if name_columns_current:
+                            current_name = row.get(name_columns_current[0])
                     
                     if current_name and pd.notna(current_name):
                         # Try to find matching employee in masterlist_current
@@ -217,11 +239,35 @@ class ProcessingController:
         for col in new_columns:
             df[col] = None
     
-    def detect_lookup_columns(self, current_df: pd.DataFrame, previous_df: Optional[pd.DataFrame]) -> tuple:
-        """Detect columns for lookup with flexible matching"""
-        # Current System - User ID column
+    def detect_lookup_columns(self, current_df: pd.DataFrame, previous_df: Optional[pd.DataFrame], configured_user_id_column: Optional[str] = None) -> tuple:
+        """Detect columns for lookup with flexible matching or use custom/configured columns"""
+        # Check if custom lookup columns are set
+        custom_columns = self.main_controller.matching_engine.get_custom_lookup_columns()
+        
+        # Use custom columns if they are set
+        if custom_columns['current_user_id'] or custom_columns['previous_user_id'] or custom_columns['previous_pernr']:
+            user_id_current = custom_columns['current_user_id']
+            user_id_previous = custom_columns['previous_user_id']
+            pernr_previous = custom_columns['previous_pernr']
+            
+            # Validate that the custom columns exist in the dataframes
+            if user_id_current and current_df is not None and user_id_current not in current_df.columns:
+                user_id_current = None
+            if user_id_previous and previous_df is not None and user_id_previous not in previous_df.columns:
+                user_id_previous = None
+            if pernr_previous and previous_df is not None and pernr_previous not in previous_df.columns:
+                pernr_previous = None
+            
+            return user_id_current, user_id_previous, pernr_previous
+        
+        # Use configured User ID column if provided and valid
         user_id_current = None
-        if current_df is not None:
+        if configured_user_id_column and current_df is not None:
+            if configured_user_id_column in current_df.columns:
+                user_id_current = configured_user_id_column
+        
+        # If no configured column, fall back to automatic detection
+        if user_id_current is None and current_df is not None:
             # Try exact match first
             exact_match = [col for col in current_df.columns if col == 'User ID']
             if exact_match:

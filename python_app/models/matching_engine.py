@@ -91,8 +91,9 @@ class MatchingEngine:
         # Find name columns in masterlist - prioritize "Full Name" column
         name_columns = [col for col in masterlist_df.columns if col == 'Full Name']
         if not name_columns:
-            # Fallback to flexible matching (could be "Name", "Employee Name", etc.)
-            name_columns = [col for col in masterlist_df.columns if 'name' in str(col).lower()]
+            # Fallback to flexible matching (could be "Name", "Employee Name", "User Description", etc.)
+            name_columns = [col for col in masterlist_df.columns 
+                          if any(keyword in str(col).lower() for keyword in ['name', 'description', 'desc'])]
         if not name_columns:
             return None, None, "no_match", 0.0
         
@@ -319,3 +320,72 @@ class MatchingEngine:
             Column name with sort indicator
         """
         return self.data_sorter.get_sort_direction_indicator(column, ascending)
+    
+    def get_column_headers(self, current_df: pd.DataFrame, previous_df: Optional[pd.DataFrame]) -> dict:
+        """
+        Get column headers from both current and previous system reports
+        
+        Args:
+            current_df: Current system report DataFrame
+            previous_df: Previous reference DataFrame (optional)
+            
+        Returns:
+            Dictionary with column headers from both files
+        """
+        headers = {
+            'current_system': [],
+            'previous_system': []
+        }
+        
+        # Get current system report headers
+        if current_df is not None and not current_df.empty:
+            headers['current_system'] = list(current_df.columns)
+            print(f"Current System Report: Found {len(headers['current_system'])} columns")
+        
+        # Get previous system report headers
+        if previous_df is not None and not previous_df.empty:
+            headers['previous_system'] = list(previous_df.columns)
+            print(f"Previous Reference: Found {len(headers['previous_system'])} columns")
+            
+            # Debug: Show all column names for Previous Reference
+            print("Previous Reference columns:")
+            for i, col in enumerate(headers['previous_system'], 1):
+                print(f"  {i:2d}. {col}")
+        
+        return headers
+    
+    def set_custom_lookup_columns(self, current_user_id_col: Optional[str], previous_user_id_col: Optional[str], previous_pernr_col: Optional[str]):
+        """
+        Set custom lookup columns for PERNR matching
+        
+        Args:
+            current_user_id_col: Column name in current system report to use as User ID
+            previous_user_id_col: Column name in previous system report to use as User ID
+            previous_pernr_col: Column name in previous system report to use as PERNR
+        """
+        self.custom_lookup_columns = {
+            'current_user_id': current_user_id_col,
+            'previous_user_id': previous_user_id_col,
+            'previous_pernr': previous_pernr_col
+        }
+    
+    def get_custom_lookup_columns(self) -> dict:
+        """
+        Get currently set custom lookup columns
+        
+        Returns:
+            Dictionary with custom lookup column settings
+        """
+        return getattr(self, 'custom_lookup_columns', {
+            'current_user_id': None,
+            'previous_user_id': None,
+            'previous_pernr': None
+        })
+    
+    def clear_custom_lookup_columns(self):
+        """Clear custom lookup columns and revert to automatic detection"""
+        self.custom_lookup_columns = {
+            'current_user_id': None,
+            'previous_user_id': None,
+            'previous_pernr': None
+        }

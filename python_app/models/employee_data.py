@@ -69,6 +69,11 @@ class EmployeeDataset:
             'masterlist_resigned': None
         }
         
+        # Current system report configuration
+        self.current_system_header_row: Optional[int] = None
+        self.current_system_user_id_column: Optional[str] = None
+        self.current_system_full_name_column: Optional[str] = None
+        
         # Load persisted masterlist paths on initialization
         self._load_masterlist_paths()
     
@@ -110,6 +115,11 @@ class EmployeeDataset:
         # Clear only system report file paths
         self.file_paths['current_system'] = None
         self.file_paths['previous_reference'] = None
+        
+        # Clear current system report configuration
+        self.current_system_header_row = None
+        self.current_system_user_id_column = None
+        self.current_system_full_name_column = None
     
     def clear_all_data(self):
         """Clear all data and reset the dataset"""
@@ -124,8 +134,23 @@ class EmployeeDataset:
         for key in self.file_paths.keys():
             self.file_paths[key] = None
         
+        # Clear current system report configuration
+        self.current_system_header_row = None
+        self.current_system_user_id_column = None
+        self.current_system_full_name_column = None
+        
         # Also clear persisted masterlist paths
         self._save_masterlist_paths()
+    
+    def set_current_system_config(self, header_row: int, user_id_column: str, full_name_column: str):
+        """Set header row, User ID column, and Full Name column for current system report"""
+        self.current_system_header_row = header_row
+        self.current_system_user_id_column = user_id_column
+        self.current_system_full_name_column = full_name_column
+    
+    def get_current_system_config(self) -> tuple:
+        """Get header row, User ID column, and Full Name column for current system report"""
+        return self.current_system_header_row, self.current_system_user_id_column, self.current_system_full_name_column
     
     def get_missing_files(self) -> list:
         """Get list of missing required files"""
@@ -167,9 +192,9 @@ class EmployeeDataset:
             try:
                 file_extension = Path(current_path).suffix.lower()
                 if file_extension == '.csv':
-                    self.masterlist_current = file_handler.detect_and_load_csv(current_path)
+                    self.masterlist_current = file_handler.detect_and_load_csv(current_path, 'masterlist_current')
                 elif file_extension in ['.xlsx', '.xls']:
-                    self.masterlist_current = file_handler.detect_and_load_excel(current_path)
+                    self.masterlist_current = file_handler.detect_and_load_excel(current_path, 'masterlist_current')
                 files_loaded = True
             except Exception:
                 # If loading fails, remove the path
@@ -181,9 +206,9 @@ class EmployeeDataset:
             try:
                 file_extension = Path(resigned_path).suffix.lower()
                 if file_extension == '.csv':
-                    self.masterlist_resigned = file_handler.detect_and_load_csv(resigned_path)
+                    self.masterlist_resigned = file_handler.detect_and_load_csv(resigned_path, 'masterlist_resigned')
                 elif file_extension in ['.xlsx', '.xls']:
-                    self.masterlist_resigned = file_handler.detect_and_load_excel(resigned_path)
+                    self.masterlist_resigned = file_handler.detect_and_load_excel(resigned_path, 'masterlist_resigned')
                 files_loaded = True
             except Exception:
                 # If loading fails, remove the path

@@ -74,6 +74,10 @@ class MainController:
     def handle_file_upload(self, file_type: str, file_path: str):
         """Handle file upload request"""
         self.file_controller.handle_file_upload(file_type, file_path)
+        
+        # Refresh column headers in cleanup view if it exists
+        if self.main_window and self.main_window.cleanup_view:
+            self.main_window.cleanup_view.refresh_column_headers()
     
     def preview_file(self, file_type: str):
         """Preview a specific file"""
@@ -175,6 +179,27 @@ class MainController:
     def handle_export_request(self, data_type: str, format_type: str):
         """Handle export request"""
         self.file_controller.handle_export_request(data_type, format_type)
+    
+    def get_column_headers(self) -> dict:
+        """Get column headers from current and previous system reports"""
+        if self.employee_dataset.current_system is not None:
+            return self.matching_engine.get_column_headers(
+                self.employee_dataset.current_system,
+                self.employee_dataset.previous_reference
+            )
+        return {'current_system': [], 'previous_system': []}
+    
+    def set_custom_lookup_columns(self, current_user_id_col: Optional[str], previous_user_id_col: Optional[str], previous_pernr_col: Optional[str]):
+        """Set custom lookup columns for PERNR matching"""
+        self.matching_engine.set_custom_lookup_columns(current_user_id_col, previous_user_id_col, previous_pernr_col)
+    
+    def clear_custom_lookup_columns(self):
+        """Clear custom lookup columns and revert to automatic detection"""
+        self.matching_engine.clear_custom_lookup_columns()
+    
+    def get_custom_lookup_columns(self) -> dict:
+        """Get currently set custom lookup columns"""
+        return self.matching_engine.get_custom_lookup_columns()
     
     def update_progress(self, value: float, status: str):
         """Update progress bar and status"""

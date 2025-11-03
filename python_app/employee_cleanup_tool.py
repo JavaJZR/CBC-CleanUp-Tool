@@ -1025,7 +1025,8 @@ class EmployeeCleanupTool:
                 if employee_number is None:
                     # Get the current system's username/full name for comparison
                     current_name = None
-                    name_columns_current = [col for col in current_df.columns if 'username' in str(col).lower() or 'name' in str(col).lower()]
+                    name_columns_current = [col for col in current_df.columns 
+                                          if any(keyword in str(col).lower() for keyword in ['username', 'name', 'description', 'desc'])]
                     if name_columns_current:
                         current_name = row.get(name_columns_current[0])
                     

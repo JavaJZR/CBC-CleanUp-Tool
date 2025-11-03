@@ -24,12 +24,89 @@ class FileController:
             # Show loading state
             self.main_controller.main_window.root.config(cursor="wait")
             
+            # For current system report, show header selection dialog first
+            if file_type == 'current_system':
+                # Store file path temporarily
+                temp_file_path = file_path
+                
+                # Reset cursor for dialog
+                self.main_controller.main_window.root.config(cursor="")
+                
+                # Show header selection dialog
+                from views.header_selection_dialog import HeaderSelectionDialog
+                
+                def on_header_selection_complete(header_row: int, user_id_column: Optional[str], full_name_column: Optional[str]):
+                    """Callback when user confirms header and column selection"""
+                    try:
+                        # Show loading state again
+                        self.main_controller.main_window.root.config(cursor="wait")
+                        
+                        # Load file with selected header row
+                        file_extension = Path(temp_file_path).suffix.lower()
+                        if file_extension == '.csv':
+                            df = self.file_handler.detect_and_load_csv(temp_file_path, file_type, header_row)
+                        elif file_extension in ['.xlsx', '.xls']:
+                            df = self.file_handler.detect_and_load_excel(temp_file_path, file_type, header_row)
+                        else:
+                            messagebox.showerror("Error", "Unsupported file format. Please upload CSV, XLS, or XLSX files.")
+                            return
+                        
+                        # Validate data
+                        if df.empty:
+                            messagebox.showerror("Error", "File is empty or contains no data.")
+                            return
+                        
+                        # Auto-detect columns if not provided (they will be selected in cleanup section)
+                        if not user_id_column:
+                            # Try to find a User ID column automatically
+                            name_columns = [col for col in df.columns 
+                                          if any(keyword in str(col).lower() for keyword in ['user', 'id', 'sysid', 'username', 'abbreviation'])]
+                            user_id_column = name_columns[0] if name_columns else None
+                        
+                        if not full_name_column:
+                            # Try to find a Full Name column automatically
+                            name_columns = [col for col in df.columns 
+                                          if any(keyword in str(col).lower() for keyword in ['full name', 'name', 'username', 'user description', 'description', 'user desc', 'desc'])]
+                            full_name_column = name_columns[0] if name_columns else None
+                        
+                        # Store configuration (columns can be None - they will be selected in cleanup section)
+                        self.main_controller.employee_dataset.set_current_system_config(header_row, user_id_column, full_name_column)
+                        
+                        # Store data in model
+                        self.store_file_data(file_type, df, temp_file_path)
+                        
+                        # Update view
+                        file_name, _, row_count, col_count = self.file_handler.get_file_info(temp_file_path)
+                        self.main_controller.main_window.file_upload_view.update_file_card(
+                            file_type, file_name, row_count, col_count
+                        )
+                        
+                        # Check if ready for next step
+                        if self.main_controller.employee_dataset.is_ready_for_processing():
+                            self.main_controller.show_preview_section()
+                        
+                    except Exception as e:
+                        error_msg = f"Failed to load file with selected header row:\n{str(e)}\n\nPlease ensure your file:\n• Is a valid CSV, XLS, or XLSX file\n• Contains column headers in the selected row\n• Is not corrupted or password-protected"
+                        messagebox.showerror("Error", error_msg)
+                    finally:
+                        self.main_controller.main_window.root.config(cursor="")
+                
+                # Show the dialog
+                HeaderSelectionDialog(
+                    self.main_controller.main_window.root,
+                    temp_file_path,
+                    on_header_selection_complete
+                )
+                
+                return  # Exit early, dialog will handle the rest
+            
+            # For other file types, use standard loading
             # Load file based on extension
             file_extension = Path(file_path).suffix.lower()
             if file_extension == '.csv':
-                df = self.file_handler.detect_and_load_csv(file_path)
+                df = self.file_handler.detect_and_load_csv(file_path, file_type)
             elif file_extension in ['.xlsx', '.xls']:
-                df = self.file_handler.detect_and_load_excel(file_path)
+                df = self.file_handler.detect_and_load_excel(file_path, file_type)
             else:
                 messagebox.showerror("Error", "Unsupported file format. Please upload CSV, XLS, or XLSX files.")
                 return
@@ -53,7 +130,8 @@ class FileController:
                 self.main_controller.show_preview_section()
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to parse file:\n{str(e)}\n\nPlease ensure your file:\n• Is a valid CSV, XLS, or XLSX file\n• Contains column headers in the first row\n• Is not corrupted or password-protected")
+            error_msg = f"Failed to parse file:\n{str(e)}\n\nPlease ensure your file:\n• Is a valid CSV, XLS, or XLSX file\n• Contains column headers (may not be in the first row)\n• Is not corrupted or password-protected\n\nNote: The system will automatically detect headers in different rows and handle merged cells for system reports."
+            messagebox.showerror("Error", error_msg)
         finally:
             self.main_controller.main_window.root.config(cursor="")
     
@@ -63,10 +141,6 @@ class FileController:
         
         # Store file path
         dataset.file_paths[file_type] = file_path
-        
-        # Persist masterlist paths for cross-session use
-        if file_type in ['masterlist_current', 'masterlist_resigned']:
-            dataset.save_masterlist_path(file_type, file_path)
         
         # Store dataframe
         if file_type == 'current_system':
