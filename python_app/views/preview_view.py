@@ -28,25 +28,25 @@ class PreviewView:
             
         self.preview_frame = tk.LabelFrame(
             self.parent,
-            text="2️⃣ Data Preview",
-            font=("Arial", 14, "bold"),
+            text="2. Data Preview",
+            font=("Segoe UI", 16, "bold"),
             bg="white",
-            fg="#2563eb",
-            padx=15,
-            pady=15
+            fg="#CD1C18",
+            padx=20,
+            pady=20
         )
         self.preview_frame.pack(fill="both", expand=True, padx=20, pady=(5, 5))
         
         # Description and controls
         top_frame = tk.Frame(self.preview_frame, bg="white")
-        top_frame.pack(fill="x", pady=(0, 10))
+        top_frame.pack(fill="x", pady=(0, 15))
         
         desc_label = tk.Label(
             top_frame,
             text="Review your uploaded data to ensure it's structured correctly",
-            font=("Arial", 9),
+            font=("Segoe UI", 10, "bold"),
             bg="white",
-            fg="#6b7280"
+            fg="#374151"
         )
         desc_label.pack(side="left")
         
@@ -57,9 +57,10 @@ class PreviewView:
         tk.Label(
             selector_frame,
             text="Select File:",
-            font=("Arial", 9),
-            bg="white"
-        ).pack(side="left", padx=(0, 5))
+            font=("Segoe UI", 10, "bold"),
+            bg="white",
+            fg="#374151"
+        ).pack(side="left", padx=(0, 8))
         
         self.preview_selector = ttk.Combobox(
             selector_frame,
@@ -74,13 +75,15 @@ class PreviewView:
             selector_frame,
             text="Continue to Clean-Up →",
             command=self.continue_to_cleanup,
-            bg="#dc2626",
+            bg="#CD1C18",
             fg="white",
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=20,
-            pady=8
+            padx=22,
+            pady=8,
+            activebackground="#9B1313",
+            activeforeground="white"
         )
         continue_btn.pack(side="left")
         
@@ -179,6 +182,25 @@ class PreviewView:
         table_container = tk.Frame(self.preview_table_frame, bg="white")
         table_container.pack(fill="both", expand=True)
         
+        # Style the Treeview with color scheme
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Treeview", 
+                       background="white",
+                       foreground="#374151",
+                       fieldbackground="white",
+                       font=("Segoe UI", 9))
+        style.configure("Treeview.Heading",
+                       background="#CD1C18",
+                       foreground="white",
+                       font=("Segoe UI", 9, "bold"),
+                       relief="flat")
+        style.map("Treeview.Heading",
+                 background=[("active", "#9B1313")])
+        style.map("Treeview",
+                 background=[("selected", "#FFA896")],
+                 foreground=[("selected", "#9B1313")])
+        
         # Add scrollbars
         x_scroll = ttk.Scrollbar(table_container, orient="horizontal")
         y_scroll = ttk.Scrollbar(table_container, orient="vertical")
@@ -191,7 +213,8 @@ class PreviewView:
             show="tree headings",
             xscrollcommand=x_scroll.set,
             yscrollcommand=y_scroll.set,
-            height=15
+            height=15,
+            style="Treeview"
         )
         
         x_scroll.config(command=tree.xview)
@@ -227,11 +250,11 @@ class PreviewView:
         info_label = tk.Label(
             self.preview_table_frame,
             text=f"Showing first 100 rows of {len(df)} total rows",
-            font=("Arial", 8),
+            font=("Segoe UI", 9, "bold"),
             bg="white",
-            fg="#6b7280"
+            fg="#9B1313"
         )
-        info_label.pack(pady=(5, 0))
+        info_label.pack(pady=(8, 0))
     
     def sort_treeview(self, tree, col, reverse):
         """Sort treeview by column"""

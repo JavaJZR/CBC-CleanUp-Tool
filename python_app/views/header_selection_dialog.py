@@ -112,9 +112,9 @@ class HeaderSelectionDialog:
         title_label = tk.Label(
             main_frame,
             text="Configure Current System Report",
-            font=("Arial", 16, "bold"),
+            font=("Segoe UI", 14, "bold"),
             bg="white",
-            fg="#111827"
+            fg="#9B1313"
         )
         title_label.pack(anchor="w", pady=(0, 10))
         
@@ -122,9 +122,9 @@ class HeaderSelectionDialog:
         instructions = tk.Label(
             main_frame,
             text="Select which row (1-5) contains the column headers.\n\nNote: Column selections (User ID and Full Name) are available in Step 3 (Data Clean-Up) section.",
-            font=("Arial", 10),
+            font=("Segoe UI", 9),
             bg="white",
-            fg="#6b7280",
+            fg="#374151",
             justify="left"
         )
         instructions.pack(anchor="w", pady=(0, 20))
@@ -133,9 +133,9 @@ class HeaderSelectionDialog:
         step1_frame = tk.LabelFrame(
             main_frame,
             text="Step 1: Select Header Row",
-            font=("Arial", 12, "bold"),
+            font=("Segoe UI", 11, "bold"),
             bg="white",
-            fg="#dc2626",
+            fg="#CD1C18",
             padx=15,
             pady=15
         )
@@ -145,8 +145,8 @@ class HeaderSelectionDialog:
         notebook = ttk.Notebook(step1_frame)
         notebook.pack(fill="both", expand=True)
         
-        # Variable to track selected header row
-        self.header_row_var = tk.IntVar(value=0)
+        # Variable to track selected header row (set to -1 so no option is selected initially)
+        self.header_row_var = tk.IntVar(value=-1)
         
         # Create tabs for each potential header row
         self.header_row_frames = {}
@@ -162,11 +162,12 @@ class HeaderSelectionDialog:
                     variable=self.header_row_var,
                     value=row_idx,
                     command=lambda r=row_idx: self.on_header_row_selected(r),
-                    font=("Arial", 11, "bold"),
+                    font=("Segoe UI", 12, "bold"),
                     bg="white",
-                    fg="#dc2626",
+                    fg="#CD1C18",
                     activebackground="white",
-                    activeforeground="#dc2626"
+                    activeforeground="#CD1C18",
+                    selectcolor="#FFA896"
                 )
                 radio.pack(anchor="w", padx=10, pady=10)
                 
@@ -190,8 +191,27 @@ class HeaderSelectionDialog:
                 canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
                 canvas.configure(xscrollcommand=scrollbar.set)
                 
+                # Style the Treeview with color scheme
+                style = ttk.Style()
+                style.theme_use("default")
+                style.configure("Dialog.Treeview", 
+                               background="white",
+                               foreground="#374151",
+                               fieldbackground="white",
+                               font=("Segoe UI", 9))
+                style.configure("Dialog.Treeview.Heading",
+                               background="#CD1C18",
+                               foreground="white",
+                               font=("Segoe UI", 9, "bold"),
+                               relief="flat")
+                style.map("Dialog.Treeview.Heading",
+                         background=[("active", "#9B1313")])
+                style.map("Dialog.Treeview",
+                         background=[("selected", "#FFA896")],
+                         foreground=[("selected", "#9B1313")])
+                
                 # Show first few rows of data with these headers
-                tree = ttk.Treeview(scrollable_frame, show="headings", height=4)
+                tree = ttk.Treeview(scrollable_frame, show="headings", height=4, style="Dialog.Treeview")
                 
                 # Configure columns
                 columns = list(preview_data.columns)[:10]  # Show first 10 columns
@@ -226,13 +246,15 @@ class HeaderSelectionDialog:
             button_frame,
             text="Cancel",
             command=self.on_cancel,
-            bg="#6b7280",
+            bg="#9B1313",
             fg="white",
-            font=("Arial", 10, "bold"),
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=20,
-            pady=8
+            padx=18,
+            pady=8,
+            activebackground="#38000A",
+            activeforeground="white"
         )
         cancel_btn.pack(side="right", padx=(10, 0))
         
@@ -240,14 +262,16 @@ class HeaderSelectionDialog:
             button_frame,
             text="Confirm Selection",
             command=self.on_confirm,
-            bg="#dc2626",
+            bg="#CD1C18",
             fg="white",
-            font=("Arial", 10, "bold"),
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=20,
+            padx=18,
             pady=8,
-            state="disabled"
+            state="disabled",
+            activebackground="#9B1313",
+            activeforeground="white"
         )
         self.confirm_btn.pack(side="right")
     

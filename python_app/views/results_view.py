@@ -28,12 +28,12 @@ class ResultsView:
             
         self.results_frame = tk.LabelFrame(
             self.parent,
-            text="4️⃣ Clean-Up Results",
-            font=("Arial", 14, "bold"),
+            text="4. Clean-Up Results",
+            font=("Segoe UI", 16, "bold"),
             bg="white",
-            fg="#059669",
-            padx=15,
-            pady=15
+            fg="#CD1C18",
+            padx=20,
+            pady=20
         )
         self.results_frame.pack(fill="both", expand=True, padx=20, pady=(5, 10))
         
@@ -41,11 +41,11 @@ class ResultsView:
         desc_label = tk.Label(
             self.results_frame,
             text="Review the enriched data with PERNRs, Full Names, Resignation Dates, and Organizational Data, then export your results",
-            font=("Arial", 9),
+            font=("Segoe UI", 10, "bold"),
             bg="white",
-            fg="#6b7280"
+            fg="#374151"
         )
-        desc_label.pack(anchor="w", pady=(0, 15))
+        desc_label.pack(anchor="w", pady=(0, 20))
         
         # Summary stats
         self.create_statistics_display(statistics)
@@ -75,41 +75,43 @@ class ResultsView:
             tk.Label(
                 stat_card,
                 text=str(value),
-                font=("Arial", 24, "bold"),
+                font=("Segoe UI", 28, "bold"),
                 bg="#f9fafb",
                 fg=color
-            ).pack(pady=(10, 0))
+            ).pack(pady=(12, 0))
             
             tk.Label(
                 stat_card,
                 text=label,
-                font=("Arial", 9),
+                font=("Segoe UI", 10, "bold"),
                 bg="#f9fafb",
-                fg="#6b7280"
-            ).pack(pady=(0, 10))
+                fg="#374151"
+            ).pack(pady=(0, 12))
     
     def create_preview_section(self):
         """Create data preview section"""
         preview_section = tk.LabelFrame(
             self.results_frame,
             text="📊 Data Preview",
-            font=("Arial", 10, "bold"),
+            font=("Segoe UI", 13, "bold"),
             bg="white",
-            padx=10,
-            pady=10
+            fg="#9B1313",
+            padx=15,
+            pady=15
         )
-        preview_section.pack(fill="both", expand=True, pady=(0, 15))
+        preview_section.pack(fill="both", expand=True, pady=(0, 20))
         
         # Preview selector
         selector_frame = tk.Frame(preview_section, bg="white")
-        selector_frame.pack(fill="x", pady=(0, 10))
+        selector_frame.pack(fill="x", pady=(0, 12))
         
         tk.Label(
             selector_frame,
             text="View Dataset:",
-            font=("Arial", 9, "bold"),
-            bg="white"
-        ).pack(side="left", padx=(0, 5))
+            font=("Segoe UI", 10, "bold"),
+            bg="white",
+            fg="#374151"
+        ).pack(side="left", padx=(0, 8))
         
         self.results_selector = ttk.Combobox(
             selector_frame,
@@ -143,98 +145,106 @@ class ResultsView:
         cleaned_frame = tk.LabelFrame(
             export_frame,
             text="✓ Enriched Report",
-            font=("Arial", 10, "bold"),
+            font=("Segoe UI", 12, "bold"),
             bg="white",
-            fg="#059669",
-            padx=10,
-            pady=10
+            fg="#9B1313",
+            padx=15,
+            pady=15
         )
-        cleaned_frame.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        cleaned_frame.pack(side="left", fill="both", expand=True, padx=(0, 8))
         
         tk.Label(
             cleaned_frame,
             text=f"All {statistics['total']} records (matched + unmatched) with enriched data where available",
-            font=("Arial", 8),
+            font=("Segoe UI", 10, "bold"),
             bg="white",
-            fg="#6b7280"
+            fg="#374151"
         ).pack()
         
         btn_frame1 = tk.Frame(cleaned_frame, bg="white")
-        btn_frame1.pack(pady=(10, 0))
+        btn_frame1.pack(pady=(12, 0))
         
         tk.Button(
             btn_frame1,
             text="📊 Export Excel",
             command=lambda: self.export_data("cleaned_report", "excel"),
-            bg="#059669",
+            bg="#CD1C18",
             fg="white",
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=15,
-            pady=8
-        ).pack(side="left", padx=(0, 5))
+            padx=18,
+            pady=8,
+            activebackground="#9B1313",
+            activeforeground="white"
+        ).pack(side="left", padx=(0, 8))
         
         tk.Button(
             btn_frame1,
             text="📄 Export CSV",
             command=lambda: self.export_data("cleaned_report", "csv"),
-            bg="#059669",
+            bg="#CD1C18",
             fg="white",
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=15,
-            pady=8
+            padx=18,
+            pady=8,
+            activebackground="#9B1313",
+            activeforeground="white"
         ).pack(side="left")
         
         # Unmatched data export
         unmatched_frame = tk.LabelFrame(
             export_frame,
             text="⚠ Missing PERNRs",
-            font=("Arial", 10, "bold"),
+            font=("Segoe UI", 12, "bold"),
             bg="white",
-            fg="#ea580c",
-            padx=10,
-            pady=10
+            fg="#9B1313",
+            padx=15,
+            pady=15
         )
-        unmatched_frame.pack(side="left", fill="both", expand=True, padx=(5, 0))
+        unmatched_frame.pack(side="left", fill="both", expand=True, padx=(8, 0))
         
         tk.Label(
             unmatched_frame,
             text=f"{statistics['unmatched']} records without PERNRs",
-            font=("Arial", 8),
+            font=("Segoe UI", 10, "bold"),
             bg="white",
-            fg="#6b7280"
+            fg="#374151"
         ).pack()
         
         btn_frame2 = tk.Frame(unmatched_frame, bg="white")
-        btn_frame2.pack(pady=(10, 0))
+        btn_frame2.pack(pady=(12, 0))
         
         tk.Button(
             btn_frame2,
             text="📊 Export Excel",
             command=lambda: self.export_data("unmatched_for_review", "excel"),
-            bg="#ea580c",
+            bg="#9B1313",
             fg="white",
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=15,
-            pady=8
-        ).pack(side="left", padx=(0, 5))
+            padx=18,
+            pady=8,
+            activebackground="#38000A",
+            activeforeground="white"
+        ).pack(side="left", padx=(0, 8))
         
         tk.Button(
             btn_frame2,
             text="📄 Export CSV",
             command=lambda: self.export_data("unmatched_for_review", "csv"),
-            bg="#ea580c",
+            bg="#9B1313",
             fg="white",
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=15,
-            pady=8
+            padx=18,
+            pady=8,
+            activebackground="#38000A",
+            activeforeground="white"
         ).pack(side="left")
         
         # Fuzzy matched data export (only show if there are fuzzy matches)
@@ -242,49 +252,53 @@ class ResultsView:
             fuzzy_frame = tk.LabelFrame(
                 export_frame,
                 text="🔍 Fuzzy Logic Matches",
-                font=("Arial", 10, "bold"),
+                font=("Segoe UI", 12, "bold"),
                 bg="white",
-                fg="#8b5cf6",
-                padx=10,
-                pady=10
+                fg="#9B1313",
+                padx=15,
+                pady=15
             )
-            fuzzy_frame.pack(side="left", fill="both", expand=True, padx=(5, 0))
+            fuzzy_frame.pack(side="left", fill="both", expand=True, padx=(8, 0))
             
             tk.Label(
                 fuzzy_frame,
                 text=f"{statistics['fuzzy_matched']} records matched using fuzzy logic",
-                font=("Arial", 8),
+                font=("Segoe UI", 10, "bold"),
                 bg="white",
-                fg="#6b7280"
+                fg="#374151"
             ).pack()
             
             btn_frame3 = tk.Frame(fuzzy_frame, bg="white")
-            btn_frame3.pack(pady=(10, 0))
+            btn_frame3.pack(pady=(12, 0))
             
             tk.Button(
                 btn_frame3,
                 text="📊 Export Excel",
                 command=lambda: self.export_data("fuzzy_logic_matches", "excel"),
-                bg="#8b5cf6",
+                bg="#CD1C18",
                 fg="white",
-                font=("Arial", 9, "bold"),
+                font=("Segoe UI", 10, "bold"),
                 relief="flat",
                 cursor="hand2",
-                padx=15,
-                pady=8
-            ).pack(side="left", padx=(0, 5))
+                padx=18,
+                pady=8,
+                activebackground="#9B1313",
+                activeforeground="white"
+            ).pack(side="left", padx=(0, 8))
             
             tk.Button(
                 btn_frame3,
                 text="📄 Export CSV",
                 command=lambda: self.export_data("fuzzy_logic_matches", "csv"),
-                bg="#8b5cf6",
+                bg="#CD1C18",
                 fg="white",
-                font=("Arial", 9, "bold"),
+                font=("Segoe UI", 10, "bold"),
                 relief="flat",
                 cursor="hand2",
-                padx=15,
-                pady=8
+                padx=18,
+                pady=8,
+                activebackground="#9B1313",
+                activeforeground="white"
             ).pack(side="left")
     
     def on_dataset_selected(self, event=None):
@@ -336,6 +350,25 @@ class ResultsView:
         table_container = tk.Frame(self.results_preview_frame, bg="white")
         table_container.pack(fill="both", expand=True)
         
+        # Style the Treeview with color scheme
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Treeview", 
+                       background="white",
+                       foreground="#374151",
+                       fieldbackground="white",
+                       font=("Segoe UI", 9))
+        style.configure("Treeview.Heading",
+                       background="#CD1C18",
+                       foreground="white",
+                       font=("Segoe UI", 9, "bold"),
+                       relief="flat")
+        style.map("Treeview.Heading",
+                 background=[("active", "#9B1313")])
+        style.map("Treeview",
+                 background=[("selected", "#FFA896")],
+                 foreground=[("selected", "#9B1313")])
+        
         # Add scrollbars
         x_scroll = ttk.Scrollbar(table_container, orient="horizontal")
         y_scroll = ttk.Scrollbar(table_container, orient="vertical")
@@ -348,7 +381,8 @@ class ResultsView:
             show="tree headings",
             xscrollcommand=x_scroll.set,
             yscrollcommand=y_scroll.set,
-            height=12
+            height=12,
+            style="Treeview"
         )
         
         x_scroll.config(command=tree.xview)
@@ -382,11 +416,11 @@ class ResultsView:
         info_label = tk.Label(
             self.results_preview_frame,
             text=f"Showing first 100 rows of {len(df)} total rows | Highlighted: PERNR, Full Name, Resignation Date & Organizational Data columns",
-            font=("Arial", 8),
+            font=("Segoe UI", 9, "bold"),
             bg="white",
-            fg="#6b7280"
+            fg="#9B1313"
         )
-        info_label.pack(pady=(5, 0))
+        info_label.pack(pady=(8, 0))
     
     def get_resigned_users_data(self) -> Optional[pd.DataFrame]:
         """Extract resigned users based on resignation date"""

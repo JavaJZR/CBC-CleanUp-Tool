@@ -26,9 +26,9 @@ export function ResultsSection({
       <ScrollArea className="h-96 w-full">
         <Table>
           <TableHeader>
-            <TableRow className="bg-red-600 hover:bg-red-600">
+            <TableRow className="bg-gradient-to-r from-[#CD1C18] to-[#9B1313] hover:from-[#9B1313] hover:to-[#38000A]">
               {tableHeaders.map((header, index) => (
-                <TableHead key={index} className="text-white font-medium">
+                <TableHead key={index} className="text-white font-bold text-base">
                   {header}
                 </TableHead>
               ))}
@@ -38,7 +38,7 @@ export function ResultsSection({
             {data.map((row, rowIndex) => (
               <TableRow key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 {tableHeaders.map((header, cellIndex) => (
-                  <TableCell key={cellIndex} className="text-gray-700">
+                  <TableCell key={cellIndex} className="text-gray-800 font-medium text-base">
                     {String(row[header] || '')}
                   </TableCell>
                 ))}
@@ -53,12 +53,12 @@ export function ResultsSection({
   return (
     <Card className="p-6 bg-gradient-to-br from-white to-green-50 border border-green-200 shadow-lg">
       <div className="mb-6">
-        <h3 className="text-lg font-medium bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">Clean-Up Results</h3>
-        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-          <p className="text-sm text-green-800">
-            <strong>✅ Clean-up completed!</strong> Your data has been processed and separated into two categories:
+        <h3 className="text-3xl font-black bg-gradient-to-r from-[#CD1C18] to-[#9B1313] bg-clip-text text-transparent mb-4 tracking-tight">Clean-Up Results</h3>
+        <div className="bg-[#FFA896]/20 p-5 rounded-lg border-2 border-[#FFA896]">
+          <p className="text-lg text-[#9B1313] font-black">
+            <strong className="font-black text-xl">✅ Clean-up completed!</strong> Your data has been processed and separated into two categories:
           </p>
-          <div className="mt-2 text-xs text-green-700 space-y-1">
+          <div className="mt-4 text-base text-[#9B1313] space-y-2.5 font-bold">
             <p>• <strong>Cleaned Report:</strong> Records successfully matched and verified</p>
             <p>• <strong>Unmatched for Review:</strong> Records that need manual verification</p>
           </div>
@@ -66,11 +66,11 @@ export function ResultsSection({
       </div>
       
       <Tabs defaultValue="cleaned" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 bg-green-50 border border-green-200">
-          <TabsTrigger value="cleaned" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-md">
+        <TabsList className="grid w-full grid-cols-2 bg-[#FFA896]/20 border-2 border-[#FFA896]">
+          <TabsTrigger value="cleaned" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#CD1C18] data-[state=active]:to-[#9B1313] data-[state=active]:text-white data-[state=active]:shadow-lg font-bold text-base">
             Cleaned Report ({cleanedData.length})
           </TabsTrigger>
-          <TabsTrigger value="unmatched" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-500 data-[state=active]:text-white data-[state=active]:shadow-md">
+          <TabsTrigger value="unmatched" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#CD1C18] data-[state=active]:to-[#9B1313] data-[state=active]:text-white data-[state=active]:shadow-lg font-bold text-base">
             Unmatched for Review ({unmatchedData.length})
           </TabsTrigger>
         </TabsList>
@@ -81,7 +81,7 @@ export function ResultsSection({
               variant="outline"
               size="sm"
               onClick={() => onExportCSV(cleanedData, 'cleaned-employee-data')}
-              className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400"
+              className="border-[#FFA896] text-[#9B1313] hover:bg-[#FFA896]/20 hover:border-[#CD1C18] font-bold"
             >
               <Download className="w-4 h-4 mr-2" />
               Export CSV
@@ -90,7 +90,7 @@ export function ResultsSection({
               variant="outline"
               size="sm"
               onClick={() => onExportExcel(cleanedData, 'cleaned-employee-data')}
-              className="border-green-300 text-green-700 hover:bg-green-50 hover:border-green-400"
+              className="border-[#FFA896] text-[#9B1313] hover:bg-[#FFA896]/20 hover:border-[#CD1C18] font-bold"
             >
               <Download className="w-4 h-4 mr-2" />
               Export Excel
@@ -99,8 +99,8 @@ export function ResultsSection({
           
           {renderTable(cleanedData, headers)}
           
-          <p className="text-sm text-gray-500">
-            Showing {cleanedData.length} active employees
+          <p className="text-lg text-gray-900 font-bold">
+            Showing <strong className="text-[#CD1C18] font-black">{cleanedData.length}</strong> active employees
           </p>
         </TabsContent>
         
@@ -110,7 +110,7 @@ export function ResultsSection({
               variant="outline"
               size="sm"
               onClick={() => onExportCSV(unmatchedData, 'unmatched-for-review')}
-              className="border-orange-300 text-orange-700 hover:bg-orange-50 hover:border-orange-400"
+              className="border-[#FFA896] text-[#9B1313] hover:bg-[#FFA896]/20 hover:border-[#CD1C18] font-bold"
             >
               <Download className="w-4 h-4 mr-2" />
               Export CSV
@@ -119,7 +119,7 @@ export function ResultsSection({
               variant="outline"
               size="sm"
               onClick={() => onExportExcel(unmatchedData, 'unmatched-for-review')}
-              className="border-orange-300 text-orange-700 hover:bg-orange-50 hover:border-orange-400"
+              className="border-[#FFA896] text-[#9B1313] hover:bg-[#FFA896]/20 hover:border-[#CD1C18] font-bold"
             >
               <Download className="w-4 h-4 mr-2" />
               Export Excel
@@ -128,8 +128,8 @@ export function ResultsSection({
           
           {renderTable(unmatchedData, headers)}
           
-          <p className="text-sm text-gray-500">
-            Showing {unmatchedData.length} records requiring manual review
+          <p className="text-lg text-gray-900 font-bold">
+            Showing <strong className="text-[#CD1C18] font-black">{unmatchedData.length}</strong> records requiring manual review
           </p>
         </TabsContent>
       </Tabs>

@@ -328,23 +328,23 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-red-50">
       {/* Header */}
-      <header className="bg-gradient-to-r from-red-600 to-red-700 shadow-lg px-6 py-6">
+      <header className="bg-gradient-to-r from-[#CD1C18] to-[#9B1313] shadow-lg px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-lg">CB</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Employee Data Clean-Up Tool</h1>
-              <p className="text-red-100">Chinabank Internal System</p>
+              <h1 className="text-4xl font-black text-white tracking-tight">Employee Data Clean-Up Tool</h1>
+              <p className="text-lg text-[#FFA896] font-bold mt-2">Chinabank Internal System</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Badge variant={getStepBadgeVariant(1)} className="bg-white/20 text-white border-white/30">1. Upload</Badge>
-            <Badge variant={getStepBadgeVariant(2)} className="bg-white/20 text-white border-white/30">2. Preview</Badge>
-            <Badge variant={getStepBadgeVariant(3)} className="bg-white/20 text-white border-white/30">3. Clean-Up</Badge>
-            <Badge variant={getStepBadgeVariant(4)} className="bg-white/20 text-white border-white/30">4. Results</Badge>
+          <div className="flex items-center space-x-3">
+            <Badge variant={getStepBadgeVariant(1)} className="bg-white/25 text-white border-white/40 text-base font-bold px-5 py-2.5 shadow-md">1. Upload</Badge>
+            <Badge variant={getStepBadgeVariant(2)} className="bg-white/25 text-white border-white/40 text-base font-bold px-5 py-2.5 shadow-md">2. Preview</Badge>
+            <Badge variant={getStepBadgeVariant(3)} className="bg-white/25 text-white border-white/40 text-base font-bold px-5 py-2.5 shadow-md">3. Clean-Up</Badge>
+            <Badge variant={getStepBadgeVariant(4)} className="bg-white/25 text-white border-white/40 text-base font-bold px-5 py-2.5 shadow-md">4. Results</Badge>
           </div>
         </div>
       </header>
@@ -360,11 +360,11 @@ export default function App() {
               </svg>
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent mb-3">How to Use This Tool</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-700">
+              <h2 className="text-3xl font-black bg-gradient-to-r from-[#CD1C18] to-[#9B1313] bg-clip-text text-transparent mb-5 tracking-tight">How to Use This Tool</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-lg text-gray-800">
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">📂 Step 1: Upload Files</h4>
-                  <ul className="space-y-1 text-xs">
+                  <h4 className="font-black text-xl text-[#9B1313] mb-4">📂 Step 1: Upload Files</h4>
+                  <ul className="space-y-2.5 text-base">
                     <li>• Upload your Excel (.xlsx, .xls) or CSV files</li>
                     <li>• <strong>Current System Report:</strong> Latest employee data</li>
                     <li>• <strong>Previous Reference:</strong> Historical data for comparison</li>
@@ -373,8 +373,8 @@ export default function App() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">🔍 Step 2: Preview Data</h4>
-                  <ul className="space-y-1 text-xs">
+                  <h4 className="font-black text-xl text-[#9B1313] mb-4">🔍 Step 2: Preview Data</h4>
+                  <ul className="space-y-2.5 text-base">
                     <li>• Preview files immediately after upload</li>
                     <li>• Click "Preview" button on uploaded files</li>
                     <li>• Use search to find specific records</li>
@@ -383,8 +383,8 @@ export default function App() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">⚙️ Step 3: Configure Clean-Up</h4>
-                  <ul className="space-y-1 text-xs">
+                  <h4 className="font-black text-xl text-[#9B1313] mb-4">⚙️ Step 3: Configure Clean-Up</h4>
+                  <ul className="space-y-2.5 text-base">
                     <li>• Adjust fuzzy match threshold (50-100%)</li>
                     <li>• Higher % = more exact matching required</li>
                     <li>• Monitor progress and status updates</li>
@@ -392,8 +392,8 @@ export default function App() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">📊 Step 4: Export Results</h4>
-                  <ul className="space-y-1 text-xs">
+                  <h4 className="font-black text-xl text-[#9B1313] mb-4">📊 Step 4: Export Results</h4>
+                  <ul className="space-y-2.5 text-base">
                     <li>• <strong>Cleaned Report:</strong> Successfully matched records</li>
                     <li>• <strong>Unmatched for Review:</strong> Records needing manual review</li>
                     <li>• Export to CSV or Excel format</li>
@@ -401,9 +401,9 @@ export default function App() {
                   </ul>
                 </div>
               </div>
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-xs text-yellow-800">
-                  <strong>⚠️ Important:</strong> This tool processes employee data. Ensure you have proper authorization and follow data privacy guidelines when handling sensitive information.
+              <div className="mt-4 p-5 bg-[#FFA896]/20 border-2 border-[#FFA896] rounded-lg">
+                <p className="text-base text-[#9B1313] font-bold">
+                  <strong className="font-black text-lg">⚠️ Important:</strong> This tool processes employee data. Ensure you have proper authorization and follow data privacy guidelines when handling sensitive information.
                 </p>
               </div>
             </div>
@@ -417,8 +417,8 @@ export default function App() {
               <span className="font-medium">1</span>
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-semibold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">File Upload</h2>
-              <p className="text-sm text-gray-600 mt-1">Upload your employee data files in Excel (.xlsx, .xls) or CSV format. All files should contain employee information with columns like Employee ID, Name, Department, etc.</p>
+              <h2 className="text-4xl font-black bg-gradient-to-r from-[#CD1C18] to-[#9B1313] bg-clip-text text-transparent tracking-tight">File Upload</h2>
+              <p className="text-lg text-gray-800 mt-3 font-bold">Upload your employee data files in Excel (.xlsx, .xls) or CSV format. All files should contain employee information with columns like Employee ID, Name, Department, etc.</p>
             </div>
           </div>
           
@@ -472,9 +472,9 @@ export default function App() {
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
               </div>
-              <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">📋 File Format Requirements:</p>
-                <ul className="text-xs space-y-1">
+              <div className="text-lg text-[#9B1313]">
+                <p className="font-black mb-3 text-xl">📋 File Format Requirements:</p>
+                <ul className="text-base space-y-2.5 font-semibold">
                   <li>• Accepted formats: Excel (.xlsx, .xls) or CSV (.csv)</li>
                   <li>• Each file should have column headers in the first row</li>
                   <li>• Common columns: Employee ID, Name, Department, Position, Email, Status</li>
@@ -496,12 +496,12 @@ export default function App() {
                 <span className="font-medium">2</span>
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">Data Preview</h2>
-                <p className="text-sm text-gray-600 mt-1">Review your uploaded data to ensure it's structured correctly. Use the search function to verify specific records before proceeding to the clean-up process.</p>
+                <h2 className="text-4xl font-black bg-gradient-to-r from-[#CD1C18] to-[#9B1313] bg-clip-text text-transparent tracking-tight">Data Preview</h2>
+                <p className="text-lg text-gray-800 mt-3 font-bold">Review your uploaded data to ensure it's structured correctly. Use the search function to verify specific records before proceeding to the clean-up process.</p>
               </div>
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Preview File:</label>
+                <div className="flex items-center space-x-3">
+                  <label className="text-lg font-bold text-gray-800">Preview File:</label>
                   <Select 
                     value={selectedPreviewFile || ''} 
                     onValueChange={(value) => setSelectedPreviewFile(value as keyof UploadedFiles)}
@@ -521,7 +521,7 @@ export default function App() {
                 <button
                   onClick={() => setCurrentStep(3)}
                   disabled={!uploadedFiles.currentSystem || !uploadedFiles.masterlistCurrent}
-                  className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-gradient-to-r from-[#CD1C18] to-[#9B1313] text-white px-10 py-4 rounded-xl hover:from-[#9B1313] hover:to-[#38000A] transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed font-black text-lg"
                   title={!uploadedFiles.currentSystem || !uploadedFiles.masterlistCurrent ? "Upload required files (Current System Report & Masterlist Current) to continue" : ""}
                 >
                   Continue to Clean-Up
@@ -558,9 +558,9 @@ export default function App() {
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <div className="text-sm text-blue-800">
-                    <p className="font-medium mb-1">📋 Data Preview Tips:</p>
-                    <ul className="text-xs space-y-1">
+                  <div className="text-lg text-[#9B1313]">
+                    <p className="font-black mb-3 text-xl">📋 Data Preview Tips:</p>
+                    <ul className="text-base space-y-2.5 font-semibold">
                       <li>• Switch between uploaded files using the dropdown above</li>
                       <li>• Use the search function to find specific records</li>
                       <li>• Verify that column headers and data structure look correct</li>
@@ -584,8 +584,8 @@ export default function App() {
                 <span className="font-medium">3</span>
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-semibold bg-gradient-to-r from-orange-600 to-red-700 bg-clip-text text-transparent">Data Clean-Up</h2>
-                <p className="text-sm text-gray-600 mt-1">Configure matching settings and run the automated clean-up process. The system will match records across files using fuzzy logic algorithms and identify duplicates and inconsistencies.</p>
+                <h2 className="text-4xl font-black bg-gradient-to-r from-[#CD1C18] to-[#9B1313] bg-clip-text text-transparent tracking-tight">Data Clean-Up</h2>
+                <p className="text-lg text-gray-800 mt-3 font-bold">Configure matching settings and run the automated clean-up process. The system will match records across files using fuzzy logic algorithms and identify duplicates and inconsistencies.</p>
               </div>
             </div>
             
@@ -611,8 +611,8 @@ export default function App() {
                 <span className="font-medium">4</span>
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-semibold bg-gradient-to-r from-green-600 to-emerald-700 bg-clip-text text-transparent">Clean-Up Results</h2>
-                <p className="text-sm text-gray-600 mt-1">Review the cleaned data and export your results. The system has separated records into successfully matched data and items requiring manual review.</p>
+                <h2 className="text-4xl font-black bg-gradient-to-r from-[#CD1C18] to-[#9B1313] bg-clip-text text-transparent tracking-tight">Clean-Up Results</h2>
+                <p className="text-lg text-gray-800 mt-3 font-bold">Review the cleaned data and export your results. The system has separated records into successfully matched data and items requiring manual review.</p>
               </div>
             </div>
             
@@ -628,23 +628,23 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gradient-to-r from-gray-800 to-gray-900 border-t border-gray-700 px-6 py-6 mt-auto">
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center space-x-6 text-gray-300">
-            <span className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span>Last clean-up: {getCurrentDateTime()}</span>
-            </span>
-            <span className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <span>User: System Administrator</span>
-            </span>
+      <footer className="bg-gradient-to-r from-[#38000A] to-[#9B1313] border-t border-[#CD1C18] px-6 py-6 mt-auto">
+          <div className="flex items-center justify-between text-lg">
+            <div className="flex items-center space-x-6 text-[#FFA896]">
+              <span className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-[#FFA896] rounded-full animate-pulse"></div>
+                <span className="font-bold">Last clean-up: {getCurrentDateTime()}</span>
+              </span>
+              <span className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-[#FFA896] rounded-full"></div>
+                <span className="font-bold">User: System Administrator</span>
+              </span>
+            </div>
+            <div className="flex items-center space-x-3 text-[#FFA896]">
+              <div className="w-7 h-7 bg-gradient-to-r from-[#CD1C18] to-[#FFA896] rounded shadow-lg"></div>
+              <span className="font-black text-xl">Chinabank Corporation</span>
+            </div>
           </div>
-          <div className="flex items-center space-x-2 text-gray-300">
-            <div className="w-5 h-5 bg-gradient-to-r from-red-500 to-red-600 rounded shadow-sm"></div>
-            <span className="font-medium">Chinabank Corporation</span>
-          </div>
-        </div>
       </footer>
     </div>
   );

@@ -24,12 +24,12 @@ class FileUploadView:
         """Create the file upload section"""
         self.upload_frame = tk.LabelFrame(
             self.parent,
-            text="1️⃣ File Upload",
-            font=("Arial", 14, "bold"),
+            text="1. File Upload",
+            font=("Segoe UI", 16, "bold"),
             bg="white",
-            fg="#dc2626",
-            padx=15,
-            pady=15
+            fg="#CD1C18",
+            padx=20,
+            pady=20
         )
         self.upload_frame.pack(fill="both", expand=True, padx=20, pady=(5, 5))
         
@@ -37,11 +37,11 @@ class FileUploadView:
         desc_label = tk.Label(
             self.upload_frame,
             text="Upload your employee data files in Excel (.xlsx, .xls) or CSV format",
-            font=("Arial", 9),
+            font=("Segoe UI", 10, "bold"),
             bg="white",
-            fg="#6b7280"
+            fg="#374151"
         )
-        desc_label.pack(anchor="w", pady=(0, 10))
+        desc_label.pack(anchor="w", pady=(0, 15))
         
         # Upload cards grid
         cards_frame = tk.Frame(self.upload_frame, bg="white")
@@ -65,53 +65,53 @@ class FileUploadView:
     
     def create_upload_card(self, parent, key, title, description, requirement):
         """Create a file upload card"""
-        card = tk.Frame(parent, bg="#f9fafb", relief="solid", borderwidth=1)
+        card = tk.Frame(parent, bg="#f9fafb", relief="solid", borderwidth=2, highlightbackground="#FFA896", highlightthickness=2)
         
         # Title
         title_label = tk.Label(
             card,
             text=title,
-            font=("Arial", 10, "bold"),
+            font=("Segoe UI", 11, "bold"),
             bg="#f9fafb",
-            fg="#111827"
+            fg="#9B1313"
         )
-        title_label.pack(padx=10, pady=(10, 5), anchor="w")
+        title_label.pack(padx=12, pady=(12, 8), anchor="w")
         
         # Description
         desc_label = tk.Label(
             card,
             text=description,
-            font=("Arial", 8),
+            font=("Segoe UI", 9),
             bg="#f9fafb",
-            fg="#6b7280",
+            fg="#374151",
             wraplength=400,
             justify="left"
         )
-        desc_label.pack(padx=10, pady=(0, 10), anchor="w", fill="x")
+        desc_label.pack(padx=12, pady=(0, 12), anchor="w", fill="x")
         
         # Requirement badge
-        req_color = "#dc2626" if requirement == "Required" else "#059669"
+        req_color = "#CD1C18" if requirement == "Required" else "#9B1313"
         req_label = tk.Label(
             card,
             text=requirement,
-            font=("Arial", 7, "bold"),
+            font=("Segoe UI", 9, "bold"),
             bg=req_color,
             fg="white",
-            padx=8,
-            pady=2
+            padx=12,
+            pady=4
         )
-        req_label.pack(padx=10, pady=(0, 10), anchor="w")
+        req_label.pack(padx=12, pady=(0, 12), anchor="w")
         
         # File name label
         file_label = tk.Label(
             card,
             text="No file selected",
-            font=("Arial", 8),
+            font=("Segoe UI", 9),
             bg="#f9fafb",
-            fg="#9ca3af",
+            fg="#6b7280",
             wraplength=400
         )
-        file_label.pack(padx=10, pady=(0, 10), fill="x")
+        file_label.pack(padx=12, pady=(0, 12), fill="x")
         
         # Buttons frame
         btn_frame = tk.Frame(card, bg="#f9fafb")
@@ -127,29 +127,33 @@ class FileUploadView:
             btn_frame,
             text=button_text,
             command=lambda k=key: self.upload_file(k),
-            bg="#dc2626",
+            bg="#CD1C18",
             fg="white",
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=15,
-            pady=5
+            padx=18,
+            pady=7,
+            activebackground="#9B1313",
+            activeforeground="white"
         )
-        upload_btn.pack(side="left", padx=(0, 5))
+        upload_btn.pack(side="left", padx=(0, 8))
         
         # Preview button
         preview_btn = tk.Button(
             btn_frame,
             text="👁 Preview",
             command=lambda k=key: self.preview_file(k),
-            bg="#3b82f6",
+            bg="#9B1313",
             fg="white",
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
             state="disabled",
-            padx=15,
-            pady=5
+            padx=18,
+            pady=7,
+            activebackground="#38000A",
+            activeforeground="white"
         )
         preview_btn.pack(side="left")
         
@@ -171,28 +175,32 @@ class FileUploadView:
             clear_button_frame,
             text="🗑️ Clear System Reports",
             command=self.clear_system_reports,
-            bg="#f59e0b",
-            fg="white",
-            font=("Arial", 9, "bold"),
+            bg="#FFA896",
+            fg="#9B1313",
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=20,
-            pady=8
+            padx=22,
+            pady=8,
+            activebackground="#9B1313",
+            activeforeground="white"
         )
-        clear_system_btn.pack(side="right", padx=(0, 10))
+        clear_system_btn.pack(side="right", padx=(0, 12))
         
         # Button to clear all files including masterlists
         clear_all_btn = tk.Button(
             clear_button_frame,
             text="🗑️ Clear All Files",
             command=self.clear_all_files,
-            bg="#6b7280",
+            bg="#9B1313",
             fg="white",
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=20,
-            pady=8
+            padx=22,
+            pady=8,
+            activebackground="#38000A",
+            activeforeground="white"
         )
         clear_all_btn.pack(side="right")
     
@@ -242,7 +250,8 @@ class FileUploadView:
         card = self.upload_cards[file_type]
         card.file_label.config(
             text=f"✓ {file_name}\n({row_count} rows, {col_count} columns)",
-            fg="#059669"
+            fg="#059669",
+            font=("Segoe UI", 9, "bold")
         )
         card.preview_btn.config(state="normal")
         

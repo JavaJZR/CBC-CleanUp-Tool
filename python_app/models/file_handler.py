@@ -361,13 +361,16 @@ class FileHandler:
     
     @staticmethod
     def export_to_excel(df: pd.DataFrame, file_path: str, multi_sheet_data: Optional[dict] = None):
-        """Export DataFrame to Excel with optional multi-sheet support and date formatting"""
+        """Export DataFrame to Excel with optional multi-sheet support, color scheme, and auto-sized columns"""
         if multi_sheet_data:
             # Export with multiple sheets
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
                 for sheet_name, sheet_df in multi_sheet_data.items():
                     if sheet_df is not None and not sheet_df.empty:
                         sheet_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                        
+                        # Apply styling and formatting
+                        FileHandler._apply_excel_styling(writer, sheet_name, sheet_df)
                         
                         # Apply date formatting to Resignation Date column if it exists
                         if 'Resignation Date' in sheet_df.columns:
@@ -376,14 +379,79 @@ class FileHandler:
                         # Create empty sheet with headers if no data
                         empty_df = pd.DataFrame(columns=df.columns if df is not None else [])
                         empty_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                        if not empty_df.empty:
+                            FileHandler._apply_excel_styling(writer, sheet_name, empty_df)
         else:
             # Single sheet export
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
                 df.to_excel(writer, sheet_name='Sheet1', index=False)
                 
+                # Apply styling and formatting
+                FileHandler._apply_excel_styling(writer, 'Sheet1', df)
+                
                 # Apply date formatting to Resignation Date column if it exists
                 if 'Resignation Date' in df.columns:
                     FileHandler._format_resignation_date_column(writer, 'Sheet1', df)
+    
+    @staticmethod
+    def _apply_excel_styling(writer, sheet_name: str, df: pd.DataFrame):
+        """Apply color scheme styling and auto-size columns to Excel sheet"""
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from openpyxl.utils import get_column_letter
+        
+        workbook = writer.book
+        worksheet = writer.sheets[sheet_name]
+        
+        # Color scheme
+        header_bg_color = "CD1C18"  # Red
+        header_text_color = "FFFFFF"  # White
+        alternate_row_color = "FFF5F3"  # Light peach
+        
+        # Style header row (row 1)
+        header_fill = PatternFill(start_color=header_bg_color, end_color=header_bg_color, fill_type="solid")
+        header_font = Font(bold=True, color=header_text_color, size=11, name="Segoe UI")
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        
+        for col_num, column_title in enumerate(df.columns, 1):
+            cell = worksheet.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+        
+        # Apply alternating row colors and styling
+        data_font = Font(size=10, name="Segoe UI")
+        data_alignment = Alignment(vertical="top", wrap_text=True)
+        
+        for row_num in range(2, len(df) + 2):  # Start from row 2 (data rows)
+            # Alternate row background color
+            if row_num % 2 == 0:
+                row_fill = PatternFill(start_color=alternate_row_color, end_color=alternate_row_color, fill_type="solid")
+            else:
+                row_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+            
+            for col_num in range(1, len(df.columns) + 1):
+                cell = worksheet.cell(row=row_num, column=col_num)
+                cell.fill = row_fill
+                cell.font = data_font
+                cell.alignment = data_alignment
+        
+        # Auto-size columns
+        for col_num, column_title in enumerate(df.columns, 1):
+            column_letter = get_column_letter(col_num)
+            
+            # Calculate max width
+            max_length = len(str(column_title))
+            for row_num in range(2, len(df) + 2):
+                cell_value = worksheet.cell(row=row_num, column=col_num).value
+                if cell_value:
+                    max_length = max(max_length, len(str(cell_value)))
+            
+            # Set column width with some padding (max 50 characters)
+            adjusted_width = min(max_length + 2, 50)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        # Freeze header row
+        worksheet.freeze_panes = "A2"
     
     @staticmethod
     def _format_resignation_date_column(writer, sheet_name: str, df: pd.DataFrame):
@@ -407,6 +475,11 @@ class FileHandler:
             for row_num in range(2, len(df) + 2):  # +2 because Excel is 1-indexed and has header
                 cell = worksheet.cell(row=row_num, column=column_index)
                 
+                # Preserve existing styling (fill and font) when formatting date
+                existing_fill = cell.fill
+                existing_font = cell.font
+                existing_alignment = cell.alignment
+                
                 # Convert string date to datetime if it's not None/empty
                 if cell.value and str(cell.value).strip():
                     try:
@@ -415,14 +488,20 @@ class FileHandler:
                         date_obj = datetime.strptime(str(cell.value), '%m/%d/%Y')
                         cell.value = date_obj
                         cell.number_format = date_format
+                        
+                        # Restore styling that might have been affected
+                        cell.fill = existing_fill
+                        cell.font = existing_font
+                        cell.alignment = existing_alignment
                     except (ValueError, TypeError):
                         # If date parsing fails, leave as string
                         pass
     
     @staticmethod
     def export_to_csv(df: pd.DataFrame, file_path: str):
-        """Export DataFrame to CSV"""
-        df.to_csv(file_path, index=False)
+        """Export DataFrame to CSV with proper formatting"""
+        # Export with proper encoding and formatting
+        df.to_csv(file_path, index=False, encoding='utf-8-sig')  # utf-8-sig ensures Excel can open it properly
     
     @staticmethod
     def build_filename(base_name: str, label: str, timestamp: str, extension: str) -> str:

@@ -30,9 +30,20 @@ class MainWindow:
     
     def setup_window(self):
         """Setup main window properties"""
-        self.root.title("Employee Data Clean-Up Tool - Chinabank Corporation")
+        self.root.title("Employee Data Clean-Up Tool - China Banking Corporation")
         self.root.state('zoomed')  # Windows maximized state
         self.root.configure(bg="#f8fafc")
+        
+        # Configure default font to Roboto (or use system default if not available)
+        try:
+            # Try to use a modern font, fallback to system default
+            import tkinter.font as tkfont
+            default_font = tkfont.nametofont("TkDefaultFont")
+            default_font.configure(family="Segoe UI", size=10)
+            text_font = tkfont.nametofont("TkTextFont")
+            text_font.configure(family="Segoe UI", size=10)
+        except:
+            pass
         
         # Configure grid weights for full expansion
         self.root.grid_rowconfigure(1, weight=1)  # Main content row
@@ -47,29 +58,33 @@ class MainWindow:
     
     def create_header(self):
         """Create application header"""
-        header = tk.Frame(self.root, bg="#dc2626", height=80)
+        header = tk.Frame(self.root, bg="#9B1313", height=100)
         header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=0, pady=0)
         header.grid_propagate(False)  # Maintain fixed height
         
+        # Create inner frame for better spacing control
+        header_content = tk.Frame(header, bg="#9B1313")
+        header_content.pack(fill="both", expand=True, padx=30, pady=15)
+        
         # Title
         title_label = tk.Label(
-            header,
+            header_content,
             text="Employee Data Clean-Up Tool",
-            font=("Arial", 20, "bold"),
-            bg="#dc2626",
+            font=("Segoe UI", 22, "bold"),
+            bg="#9B1313",
             fg="white"
         )
-        title_label.pack(side="left", padx=20, pady=20)
+        title_label.pack(anchor="w", pady=(0, 3))
         
         # Subtitle
         subtitle_label = tk.Label(
-            header,
+            header_content,
             text="Chinabank Internal System",
-            font=("Arial", 10),
-            bg="#dc2626",
-            fg="#fecaca"
+            font=("Segoe UI", 11, "bold"),
+            bg="#9B1313",
+            fg="#FFE5E0"
         )
-        subtitle_label.place(x=20, y=50)
+        subtitle_label.pack(anchor="w")
     
     def create_scrollable_area(self):
         """Create scrollable main content area"""
@@ -132,24 +147,24 @@ class MainWindow:
         inst_frame = tk.LabelFrame(
             self.scrollable_frame,
             text="📋 How to Use This Tool",
-            font=("Arial", 12, "bold"),
+            font=("Segoe UI", 14, "bold"),
             bg="white",
-            fg="#1e40af",
-            padx=15,
-            pady=15
+            fg="#9B1313",
+            padx=20,
+            pady=20
         )
         inst_frame.pack(fill="both", expand=True, padx=20, pady=(10, 5))
         
         instructions = """
-1️⃣ UPLOAD FILES: Upload your Excel (.xlsx, .xls) or CSV files
+1. UPLOAD FILES: Upload your Excel (.xlsx, .xls) or CSV files
    • Current System Report (Required) - Latest employee data to enrich
    • Previous Reference (Optional) - Contains User ID → PERNR mapping for faster lookup
    • Masterlist Current (Required) - Active employees with PERNR and Full Name
    • Masterlist Resigned (Required) - Resigned employees with PERNR and Full Name
 
-2️⃣ PREVIEW DATA: Review uploaded files to verify structure and content
+2. PREVIEW DATA: Review uploaded files to verify structure and content
 
-3️⃣ CONFIGURE CLEANUP: Add "PERNR", "Full Name (From Masterlist)", "Resignation Date", and Organizational Data columns
+3. CONFIGURE CLEANUP: Add "PERNR", "Full Name (From Masterlist)", "Resignation Date", and Organizational Data columns
    • PERNR: Looked up by User ID from Previous Reference (if provided), with fallback name matching
    • Full Name: Retrieved from Current/Resigned Masterlist using the PERNR
    • Resignation Date: Retrieved from Resigned Masterlist using the PERNR (if employee is resigned)
@@ -157,13 +172,13 @@ class MainWindow:
    • Fallback: If User ID lookup fails or no Previous Reference, matches "Username (Full Name)" with masterlist names
    • Fuzzy Logic: Optional fuzzy string matching for name variations (can be disabled for exact matches only)
 
-4️⃣ EXPORT RESULTS: Download enriched data (with PERNRs, Full Names, Resignation Dates, and Organizational Data) and unmatched records
+4. EXPORT RESULTS: Download enriched data (with PERNRs, Full Names, Resignation Dates, and Organizational Data) and unmatched records
         """
         
         inst_text = tk.Label(
             inst_frame,
             text=instructions,
-            font=("Arial", 9),
+            font=("Segoe UI", 10, "bold"),
             bg="white",
             fg="#374151",
             justify="left"
@@ -171,23 +186,23 @@ class MainWindow:
         inst_text.pack(anchor="w")
         
         # Warning
-        warning_frame = tk.Frame(inst_frame, bg="#fef3c7", relief="solid", borderwidth=1)
-        warning_frame.pack(fill="x", pady=(10, 0))
+        warning_frame = tk.Frame(inst_frame, bg="#FFA896", relief="solid", borderwidth=2)
+        warning_frame.pack(fill="x", pady=(15, 0))
         
         warning_label = tk.Label(
             warning_frame,
             text="⚠️ Important: This tool processes employee data. Ensure proper authorization and follow data privacy guidelines.",
-            font=("Arial", 8),
-            bg="#fef3c7",
-            fg="#92400e",
+            font=("Segoe UI", 10, "bold"),
+            bg="#FFA896",
+            fg="#9B1313",
             wraplength=2000,
             justify="left"
         )
-        warning_label.pack(padx=10, pady=8, fill="x", expand=True)
+        warning_label.pack(padx=15, pady=12, fill="x", expand=True)
     
     def create_footer(self):
         """Create application footer"""
-        footer = tk.Frame(self.root, bg="#1f2937", height=50)
+        footer = tk.Frame(self.root, bg="#38000A", height=60)
         footer.grid(row=2, column=0, columnspan=2, sticky="ew", padx=0, pady=0)
         footer.grid_propagate(False)  # Maintain fixed height
         
@@ -196,20 +211,20 @@ class MainWindow:
         left_label = tk.Label(
             footer,
             text=f"🟢 Last clean-up: {timestamp}  •  👤 User: System Administrator",
-            font=("Arial", 8),
-            bg="#1f2937",
-            fg="#d1d5db"
+            font=("Segoe UI", 10, "bold"),
+            bg="#38000A",
+            fg="#FFA896"
         )
-        left_label.pack(side="left", padx=20, pady=15)
+        left_label.pack(side="left", padx=25, pady=18)
         
         right_label = tk.Label(
             footer,
-            text="🏦 Chinabank Corporation",
-            font=("Arial", 8, "bold"),
-            bg="#1f2937",
-            fg="#d1d5db"
+            text="🏦 China Banking Corporation",
+            font=("Segoe UI", 12, "bold"),
+            bg="#38000A",
+            fg="#FFA896"
         )
-        right_label.pack(side="right", padx=20, pady=15)
+        right_label.pack(side="right", padx=25, pady=18)
     
     def initialize_views(self):
         """Initialize view components"""

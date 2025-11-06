@@ -56,12 +56,12 @@ class CleanupView:
             
         self.cleanup_frame = tk.LabelFrame(
             self.parent,
-            text="3️⃣ Data Clean-Up",
-            font=("Arial", 14, "bold"),
+            text="3. Data Clean-Up",
+            font=("Segoe UI", 16, "bold"),
             bg="white",
-            fg="#ea580c",
-            padx=15,
-            pady=15
+            fg="#CD1C18",
+            padx=20,
+            pady=20
         )
         self.cleanup_frame.pack(fill="both", expand=True, padx=20, pady=(5, 5))
         
@@ -69,12 +69,12 @@ class CleanupView:
         desc_label = tk.Label(
             self.cleanup_frame,
             text="This process will enrich your data by adding missing information:\n• Employee Numbers (PERNR) • Full Names • Resignation Dates • Job Details\n\nHow it works: 1) Find employee numbers using User IDs (if Previous Reference provided), 2) If that fails or no Previous Reference, match by name, 3) Get full names and job details from masterlists, 4) Optional: Use smart matching for similar names",
-            font=("Arial", 9),
+            font=("Segoe UI", 10, "bold"),
             bg="white",
-            fg="#6b7280",
+            fg="#374151",
             justify="left"
         )
-        desc_label.pack(anchor="w", pady=(0, 15))
+        desc_label.pack(anchor="w", pady=(0, 20))
         
         # Column Selection Frame
         self.create_column_selection_frame()
@@ -87,19 +87,20 @@ class CleanupView:
         run_frame = tk.LabelFrame(
             controls_frame,
             text="Execute Clean-Up",
-            font=("Arial", 10, "bold"),
+            font=("Segoe UI", 14, "bold"),
             bg="white",
-            padx=10,
-            pady=10
+            fg="#9B1313",
+            padx=15,
+            pady=15
         )
         run_frame.pack(fill="both", expand=True)
         
         tk.Label(
             run_frame,
             text="Start the lookup process to add PERNRs, Full Names, Resignation Dates, and Organizational Data\n(Uses User ID lookup if Previous Reference provided, otherwise uses name matching)",
-            font=("Arial", 8),
+            font=("Segoe UI", 11, "bold"),
             bg="white",
-            fg="#6b7280"
+            fg="#374151"
         ).pack(anchor="w")
         
         # Fuzzy logic option
@@ -112,9 +113,10 @@ class CleanupView:
             text="Enable Fuzzy Logic for Name Matching",
             variable=self.fuzzy_var,
             command=self.toggle_fuzzy_logic,
-            font=("Arial", 9),
+            font=("Segoe UI", 12, "bold"),
             bg="white",
-            fg="#374151"
+            fg="#374151",
+            selectcolor="#FFA896"
         )
         fuzzy_checkbox.pack(side="left")
         
@@ -122,11 +124,11 @@ class CleanupView:
         fuzzy_desc = tk.Label(
             fuzzy_frame,
             text="(Uses fuzzy string matching when exact name match fails. Disable for exact matches only.)",
-            font=("Arial", 7),
+            font=("Segoe UI", 10),
             bg="white",
             fg="#6b7280"
         )
-        fuzzy_desc.pack(side="left", padx=(10, 0))
+        fuzzy_desc.pack(side="left", padx=(12, 0))
         
         # Threshold control frame (created before Full Name frame so we can pack before it)
         threshold_frame = tk.Frame(run_frame, bg="white")
@@ -149,7 +151,7 @@ class CleanupView:
         threshold_label = tk.Label(
             threshold_frame,
             text="Fuzzy Match Threshold:",
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 12, "bold"),
             bg="white",
             fg="#374151"
         )
@@ -166,19 +168,22 @@ class CleanupView:
             command=self.update_threshold,
             bg="white",
             fg="#374151",
-            font=("Arial", 8),
-            length=200,
-            resolution=1
+            font=("Segoe UI", 10),
+            length=250,
+            resolution=1,
+            troughcolor="#FFA896",
+            highlightthickness=0,
+            activebackground="#CD1C18"
         )
-        self.threshold_slider.pack(side="left", padx=(10, 10))
+        self.threshold_slider.pack(side="left", padx=(12, 12))
         
         # Threshold value label
         self.threshold_label = tk.Label(
             threshold_frame,
             text=f"{self.controller.matching_engine.threshold}%",
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 14, "bold"),
             bg="white",
-            fg="#dc2626"
+            fg="#CD1C18"
         )
         self.threshold_label.pack(side="left")
         
@@ -186,11 +191,11 @@ class CleanupView:
         threshold_desc = tk.Label(
             threshold_frame,
             text="(Only applies when Fuzzy Logic is enabled. Higher = more strict, Lower = more lenient)",
-            font=("Arial", 7),
+            font=("Segoe UI", 10),
             bg="white",
             fg="#6b7280"
         )
-        threshold_desc.pack(side="left", padx=(10, 0))
+        threshold_desc.pack(side="left", padx=(12, 0))
         
         # Button frame for run and cancel buttons
         button_frame = tk.Frame(run_frame, bg="white")
@@ -200,28 +205,32 @@ class CleanupView:
             button_frame,
             text="🚀 Run Clean-Up Process",
             command=self.run_cleanup,
-            bg="#dc2626",
+            bg="#CD1C18",
             fg="white",
-            font=("Arial", 11, "bold"),
+            font=("Segoe UI", 11, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=30,
-            pady=15
+            padx=25,
+            pady=10,
+            activebackground="#9B1313",
+            activeforeground="white"
         )
-        self.run_btn.pack(side="left", padx=(0, 10))
+        self.run_btn.pack(side="left", padx=(0, 12))
         
         self.cancel_btn = tk.Button(
             button_frame,
             text="❌ Cancel",
             command=self.cancel_cleanup,
-            bg="#6b7280",
+            bg="#9B1313",
             fg="white",
-            font=("Arial", 11, "bold"),
+            font=("Segoe UI", 11, "bold"),
             relief="flat",
             cursor="hand2",
-            padx=30,
-            pady=15,
-            state="normal"
+            padx=25,
+            pady=10,
+            state="normal",
+            activebackground="#38000A",
+            activeforeground="white"
         )
         # Hide cancel button by default
         self.cancel_btn.pack_forget()
@@ -240,11 +249,11 @@ class CleanupView:
         self.status_label = tk.Label(
             progress_frame,
             text="Ready to start clean-up",
-            font=("Arial", 9),
+            font=("Segoe UI", 12, "bold"),
             bg="white",
-            fg="#6b7280"
+            fg="#9B1313"
         )
-        self.status_label.pack(pady=(5, 0))
+        self.status_label.pack(pady=(8, 0))
     
     def create_full_name_selection_controls(self, parent_frame):
         """Create Full Name column selection controls inside the Execute Clean-Up frame"""
@@ -255,12 +264,12 @@ class CleanupView:
         desc_label = tk.Label(
             parent_frame,
             text="Select Full Name Column for Fuzzy Matching:",
-            font=("Arial", 8, "bold"),
+            font=("Segoe UI", 11, "bold"),
             bg="white",
-            fg="#374151",
+            fg="#9B1313",
             justify="left"
         )
-        desc_label.pack(anchor="w", pady=(0, 5))
+        desc_label.pack(anchor="w", pady=(0, 8))
         
         # Load column headers for Current System Report
         try:
@@ -314,24 +323,24 @@ class CleanupView:
         self.column_selection_frame = tk.LabelFrame(
             self.cleanup_frame,
             text="🔧 Column Selection for PERNR Lookup",
-            font=("Arial", 10, "bold"),
+            font=("Segoe UI", 13, "bold"),
             bg="white",
-            fg="#7c3aed",
-            padx=10,
-            pady=10
+            fg="#9B1313",
+            padx=15,
+            pady=15
         )
-        self.column_selection_frame.pack(fill="x", pady=(0, 15))
+        self.column_selection_frame.pack(fill="x", pady=(0, 20))
         
         # Description
         desc_label = tk.Label(
             self.column_selection_frame,
             text="Choose which columns to use for User ID matching between Current System Report and Previous Reference.\nAll columns from Previous Reference are available for selection - look for User ID and PERNR columns.",
-            font=("Arial", 8),
+            font=("Segoe UI", 11, "bold"),
             bg="white",
-            fg="#6b7280",
+            fg="#374151",
             justify="left"
         )
-        desc_label.pack(anchor="w", pady=(0, 10))
+        desc_label.pack(anchor="w", pady=(0, 12))
         
         # Enable/Disable custom column selection
         self.custom_column_var = tk.BooleanVar(value=False)
@@ -340,11 +349,12 @@ class CleanupView:
             text="Enable Custom Column Selection",
             variable=self.custom_column_var,
             command=self.toggle_column_selection,
-            font=("Arial", 9, "bold"),
+            font=("Segoe UI", 12, "bold"),
             bg="white",
-            fg="#374151"
+            fg="#374151",
+            selectcolor="#FFA896"
         )
-        custom_checkbox.pack(anchor="w", pady=(0, 10))
+        custom_checkbox.pack(anchor="w", pady=(0, 12))
         
         # Column selection controls frame
         self.column_controls_frame = tk.Frame(self.column_selection_frame, bg="white")
@@ -374,18 +384,18 @@ class CleanupView:
             tk.Label(
                 current_frame,
                 text="Current System Report - User ID Column:",
-                font=("Arial", 8, "bold"),
+                font=("Segoe UI", 11, "bold"),
                 bg="white",
-                fg="#374151"
+                fg="#9B1313"
             ).pack(anchor="w")
             
             # Add hint for current system
             hint_label1 = tk.Label(
                 current_frame,
                 text="(Look for columns like 'User ID', 'Username', 'SysID', 'Abbreviation')",
-                font=("Arial", 7),
+                font=("Segoe UI", 10),
                 bg="white",
-                fg="#9ca3af"
+                fg="#6b7280"
             )
             hint_label1.pack(anchor="w")
             
@@ -405,18 +415,18 @@ class CleanupView:
             tk.Label(
                 previous_user_frame,
                 text="Previous Reference - User ID Column:",
-                font=("Arial", 8, "bold"),
+                font=("Segoe UI", 11, "bold"),
                 bg="white",
-                fg="#374151"
+                fg="#9B1313"
             ).pack(anchor="w")
             
             # Add hint for previous user ID
             hint_label2 = tk.Label(
                 previous_user_frame,
                 text="(Look for columns like 'User ID', 'Username', 'SysID', 'Abbreviation' - ALL columns shown)",
-                font=("Arial", 7),
+                font=("Segoe UI", 10),
                 bg="white",
-                fg="#9ca3af"
+                fg="#6b7280"
             )
             hint_label2.pack(anchor="w")
             
@@ -436,18 +446,18 @@ class CleanupView:
             tk.Label(
                 previous_pernr_frame,
                 text="Previous Reference - PERNR Column:",
-                font=("Arial", 8, "bold"),
+                font=("Segoe UI", 11, "bold"),
                 bg="white",
-                fg="#374151"
+                fg="#9B1313"
             ).pack(anchor="w")
             
             # Add hint for PERNR column
             hint_label3 = tk.Label(
                 previous_pernr_frame,
                 text="(Look for columns like 'PERNR', 'Employee Number', 'Pers. Number' - ALL columns shown)",
-                font=("Arial", 7),
+                font=("Segoe UI", 10),
                 bg="white",
-                fg="#9ca3af"
+                fg="#6b7280"
             )
             hint_label3.pack(anchor="w")
             
@@ -508,7 +518,7 @@ class CleanupView:
             if use_fuzzy:
                 self.threshold_slider.config(state="normal")
                 if self.threshold_label:
-                    self.threshold_label.config(fg="#dc2626")  # Red when active
+                    self.threshold_label.config(fg="#CD1C18")  # Red when active
             else:
                 self.threshold_slider.config(state="disabled")
                 if self.threshold_label:
