@@ -35,14 +35,10 @@ class MainController:
     def initialize(self):
         """Initialize the application"""
         # Create main window and sub-controllers
-        from views.splash_screen import SplashScreen
         from views.main_window import MainWindow
         from controllers.file_controller import FileController
         from controllers.processing_controller import ProcessingController
-        
-        splash = SplashScreen()
-        splash.show()
-        
+
         self.main_window = MainWindow(self)
         self.file_controller = FileController(self)
         self.processing_controller = ProcessingController(self)
@@ -55,8 +51,6 @@ class MainController:
         
         # Load persisted masterlist files if they exist
         self.load_persisted_masterlists()
-        
-        splash.close()
     
     def setup_view_callbacks(self):
         """Setup callbacks between views and controllers"""

@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 import pandas as pd
 import json
 import os
+import sys
 from pathlib import Path
 
 
@@ -47,7 +48,9 @@ class EmployeeDataset:
     """Manages collections of employee data"""
     
     # Config file path for persisting masterlist file paths
-    CONFIG_FILE = Path(__file__).parent.parent / 'masterlist_config.json'
+    _APP_DATA_ROOT = Path(os.getenv("APPDATA", Path.home()))
+    CONFIG_DIR = _APP_DATA_ROOT / "CBCEmployeeCleanup"
+    CONFIG_FILE = CONFIG_DIR / "masterlist_config.json"
     
     def __init__(self):
         # Source data files
@@ -223,6 +226,7 @@ class EmployeeDataset:
     def _save_masterlist_paths(self):
         """Save masterlist file paths to config file"""
         try:
+            self.CONFIG_DIR.mkdir(parents=True, exist_ok=True)
             config = {
                 'masterlist_current': self.file_paths.get('masterlist_current'),
                 'masterlist_resigned': self.file_paths.get('masterlist_resigned')

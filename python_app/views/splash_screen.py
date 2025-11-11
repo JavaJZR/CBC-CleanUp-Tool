@@ -31,6 +31,8 @@ class SplashScreen:
         container = tk.Frame(self.root, bg=self.BG_COLOR, padx=24, pady=24)
         container.pack(fill="both", expand=True)
 
+        self.progress_bar = None
+
         self._create_logo(container)
         self._create_text(container)
         self._create_progress(container)
@@ -93,15 +95,15 @@ class SplashScreen:
             thickness=6,
         )
 
-        progress_bar = ttk.Progressbar(
+        self.progress_bar = ttk.Progressbar(
             progress_frame,
             orient="horizontal",
             mode="indeterminate",
             length=320,
             style="Splash.Horizontal.TProgressbar",
         )
-        progress_bar.pack()
-        progress_bar.start(18)
+        self.progress_bar.pack()
+        self.progress_bar.start(18)
 
         loading_label = tk.Label(
             parent,
@@ -118,11 +120,17 @@ class SplashScreen:
         self.root.deiconify()
         self.root.update()
     
-    def close(self):
-        """Destroy the splash window."""
+    def close(self, new_default_root=None):
+        """Destroy the splash window and update default root if provided."""
         if self.root:
             try:
+                if self.progress_bar:
+                    self.progress_bar.stop()
                 self.root.destroy()
+                if new_default_root is not None:
+                    tk._default_root = new_default_root
+                else:
+                    tk._default_root = None
             except tk.TclError:
                 pass
 

@@ -7,21 +7,19 @@ The original monolithic version is preserved in backup_original/employee_cleanup
 """
 
 from controllers.main_controller import MainController
+from views.splash_screen import SplashScreen
+
 
 def main():
     """Main application entry point"""
-    try:
-        # Create and initialize the main controller
-        app = MainController()
-        app.initialize()
-        
-        # Start the application
-        app.run()
-        
-    except Exception as e:
-        print(f"Application failed to start: {str(e)}")
-        import traceback
-        traceback.print_exc()
+    splash = SplashScreen()
+    splash.show()
+
+    app = MainController()
+    app.initialize()
+    splash.close(new_default_root=app.main_window.root)
+    app.run()
+
 
 if __name__ == "__main__":
     main()
