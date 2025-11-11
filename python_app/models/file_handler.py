@@ -15,6 +15,30 @@ class FileHandler:
     """Handles file I/O operations"""
     
     @staticmethod
+    def _read_csv(file_path: str, header: Optional[int] = None) -> pd.DataFrame:
+        """Read CSV treating file as trusted and preserving all content."""
+        return pd.read_csv(
+            file_path,
+            header=header,
+            dtype=str,
+            keep_default_na=False,
+            na_filter=False,
+            encoding="utf-8-sig"
+        )
+    
+    @staticmethod
+    def _read_excel(file_path: str, header: Optional[int] = None) -> pd.DataFrame:
+        """Read Excel treating file as trusted and preserving all content."""
+        return pd.read_excel(
+            file_path,
+            header=header,
+            dtype=str,
+            keep_default_na=False,
+            na_filter=False,
+            engine="openpyxl"
+        )
+    
+    @staticmethod
     def detect_and_load_csv(file_path: str, file_type: str = None, header_row: Optional[int] = None) -> pd.DataFrame:
         """
         Detect header row and load CSV file ensuring ALL columns are read
@@ -40,7 +64,7 @@ class FileHandler:
         """Load CSV file for masterlists (looks for 'Full Name' column)"""
         # First try standard loading with all columns
         try:
-            df = pd.read_csv(file_path, dtype=str)  # Read all as strings to preserve data
+            df = FileHandler._read_csv(file_path)
             if 'Full Name' in df.columns:
                 return df
         except:
@@ -49,7 +73,7 @@ class FileHandler:
         # Search for 'Full Name' in the first 10 rows
         for header_row in range(10):  # Check first 10 rows
             try:
-                df = pd.read_csv(file_path, header=header_row, dtype=str)
+                df = FileHandler._read_csv(file_path, header=header_row)
                 if 'Full Name' in df.columns:
                     return df
             except:
@@ -58,14 +82,14 @@ class FileHandler:
         # If 'Full Name' not found, try keyword detection
         for header_row in range(10):
             try:
-                df = pd.read_csv(file_path, header=header_row, dtype=str)
+                df = FileHandler._read_csv(file_path, header=header_row)
                 if FileHandler._is_valid_header(df.columns):
                     return df
             except:
                 continue
         
         # Fallback to first row - ensure all columns are read
-        return pd.read_csv(file_path, dtype=str)
+        return FileHandler._read_csv(file_path)
     
     @staticmethod
     def _load_system_report_csv(file_path: str, header_row: Optional[int] = None) -> pd.DataFrame:
@@ -73,7 +97,7 @@ class FileHandler:
         # If header_row is specified, use it directly
         if header_row is not None:
             try:
-                df = pd.read_csv(file_path, header=header_row, dtype=str)
+                df = FileHandler._read_csv(file_path, header=header_row)
                 print(f"Using row {header_row + 1} as headers (user specified)")
                 return df
             except Exception as e:
@@ -82,7 +106,7 @@ class FileHandler:
         # Search for system report headers in the first 15 rows
         for header_row in range(15):  # Check first 15 rows for system reports
             try:
-                df = pd.read_csv(file_path, header=header_row, dtype=str)
+                df = FileHandler._read_csv(file_path, header=header_row)
                 if FileHandler._is_valid_system_report_header(df.columns):
                     print(f"Found system report headers at row {header_row + 1}")
                     return df
@@ -92,7 +116,7 @@ class FileHandler:
         # If no valid headers found, try keyword detection
         for header_row in range(15):
             try:
-                df = pd.read_csv(file_path, header=header_row, dtype=str)
+                df = FileHandler._read_csv(file_path, header=header_row)
                 if FileHandler._is_valid_header(df.columns):
                     print(f"Found valid headers at row {header_row + 1} using keyword detection")
                     return df
@@ -101,7 +125,7 @@ class FileHandler:
         
         # Fallback to first row - ensure all columns are read
         print("Using first row as headers (fallback)")
-        return pd.read_csv(file_path, dtype=str)
+        return FileHandler._read_csv(file_path)
     
     @staticmethod
     def detect_and_load_excel(file_path: str, file_type: str = None, header_row: Optional[int] = None) -> pd.DataFrame:
@@ -129,7 +153,7 @@ class FileHandler:
         """Load Excel file for masterlists (looks for 'Full Name' column)"""
         # First try standard loading with all columns
         try:
-            df = pd.read_excel(file_path, dtype=str)  # Read all as strings to preserve data
+            df = FileHandler._read_excel(file_path)
             if 'Full Name' in df.columns:
                 return df
         except:
@@ -138,7 +162,7 @@ class FileHandler:
         # Search for 'Full Name' in the first 10 rows
         for header_row in range(10):  # Check first 10 rows
             try:
-                df = pd.read_excel(file_path, header=header_row, dtype=str)
+                df = FileHandler._read_excel(file_path, header=header_row)
                 if 'Full Name' in df.columns:
                     return df
             except:
@@ -147,7 +171,7 @@ class FileHandler:
         # If 'Full Name' not found, try keyword detection
         for header_row in range(10):
             try:
-                df = pd.read_excel(file_path, header=header_row, dtype=str)
+                df = FileHandler._read_excel(file_path, header=header_row)
                 if FileHandler._is_valid_header(df.columns):
                     return df
             except:
@@ -163,7 +187,7 @@ class FileHandler:
         # If header_row is specified, use it directly
         if header_row is not None:
             try:
-                df = pd.read_excel(file_path, header=header_row, dtype=str)
+                df = FileHandler._read_excel(file_path, header=header_row)
                 print(f"Using row {header_row + 1} as headers (user specified)")
                 return df
             except Exception as e:
@@ -172,7 +196,7 @@ class FileHandler:
         # Search for system report headers in the first 15 rows
         for header_row in range(15):  # Check first 15 rows for system reports
             try:
-                df = pd.read_excel(file_path, header=header_row, dtype=str)
+                df = FileHandler._read_excel(file_path, header=header_row)
                 if FileHandler._is_valid_system_report_header(df.columns):
                     print(f"Found system report headers at row {header_row + 1}")
                     return df
@@ -182,7 +206,7 @@ class FileHandler:
         # If no valid headers found, try keyword detection
         for header_row in range(15):
             try:
-                df = pd.read_excel(file_path, header=header_row, dtype=str)
+                df = FileHandler._read_excel(file_path, header=header_row)
                 if FileHandler._is_valid_header(df.columns):
                     print(f"Found valid headers at row {header_row + 1} using keyword detection")
                     return df
@@ -264,7 +288,7 @@ class FileHandler:
         except Exception as e:
             print(f"Error handling merged cells: {e}")
             # Fallback to standard pandas reading
-            return pd.read_excel(file_path, dtype=str)
+            return FileHandler._read_excel(file_path)
     
     @staticmethod
     def load_file_with_all_columns(file_path: str, file_type: str = None) -> pd.DataFrame:
@@ -281,11 +305,9 @@ class FileHandler:
         
         try:
             if extension == '.csv':
-                # For CSV, read with no column limits
-                df = pd.read_csv(file_path, dtype=str, na_filter=False)
+                df = FileHandler._read_csv(file_path)
             elif extension in ['.xlsx', '.xls']:
-                # For Excel, read with no column limits and ensure all columns are included
-                df = pd.read_excel(file_path, dtype=str, na_filter=False)
+                df = FileHandler._read_excel(file_path)
             else:
                 raise ValueError(f"Unsupported file format: {extension}")
             
@@ -521,9 +543,9 @@ class FileHandler:
         # Try to get row and column count
         try:
             if extension == '.csv':
-                df = pd.read_csv(file_path)
+                df = FileHandler._read_csv(file_path)
             elif extension in ['.xlsx', '.xls']:
-                df = pd.read_excel(file_path)
+                df = FileHandler._read_excel(file_path)
             else:
                 return file_name, extension, 0, 0
             

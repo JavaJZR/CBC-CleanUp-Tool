@@ -270,9 +270,12 @@ class HeaderSelectionDialog:
             padx=18,
             pady=8,
             state="disabled",
-            activebackground="#9B1313",
-            activeforeground="white"
+            activebackground="#FCE6E2",
+            activeforeground="#B85650",
+            disabledforeground="#B85650",
+            highlightthickness=0
         )
+        self.confirm_btn.configure(bg="#FCE6E2", fg="#B85650", cursor="arrow")
         self.confirm_btn.pack(side="right")
     
     def on_header_row_selected(self, row_idx: int):
@@ -284,9 +287,23 @@ class HeaderSelectionDialog:
     def update_confirm_button(self):
         """Update confirm button state"""
         if self.selected_header_row is not None:
-            self.confirm_btn.config(state="normal")
+            self.confirm_btn.config(
+                state="normal",
+                bg="#CD1C18",
+                fg="white",
+                activebackground="#9B1313",
+                activeforeground="white",
+                cursor="hand2"
+            )
         else:
-            self.confirm_btn.config(state="disabled")
+            self.confirm_btn.config(
+                state="disabled",
+                bg="#FCE6E2",
+                fg="#B85650",
+                activebackground="#FCE6E2",
+                activeforeground="#B85650",
+                cursor="arrow"
+            )
     
     def on_confirm(self):
         """Handle confirm button click"""

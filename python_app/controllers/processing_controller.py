@@ -5,7 +5,7 @@ Handles data processing operations and cleanup workflow
 
 import threading
 import pandas as pd
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 from tkinter import messagebox
 import time
 
@@ -75,11 +75,19 @@ class ProcessingController:
             )
             
             # Debug: Show which columns are being used for lookup
+            custom_columns = matching_engine.get_custom_lookup_columns()
             print(f"\n=== COLUMN LOOKUP DEBUG ===")
-            print(f"Current System User ID Column: {user_id_current} {'(user selected)' if dataset_user_id_column else '(auto-detected)'}")
-            print(f"Current System Full Name Column: {dataset_full_name_column} {'(user selected)' if dataset_full_name_column else '(auto-detected)'}")
-            print(f"Previous Reference User ID Column: {user_id_previous}")
-            print(f"Previous Reference PERNR Column: {pernr_previous}")
+            current_source = "custom selection" if custom_columns.get('current_user_id') else ("user selected" if dataset_user_id_column else "auto-detected")
+            full_name_source = "user selected" if dataset_full_name_column else "auto-detected"
+            previous_user_source = "custom selection" if custom_columns.get('previous_user_id') else "auto-detected"
+            previous_pernr_source = "custom selection" if custom_columns.get('previous_pernr') else "auto-detected"
+            print(f"Current System User ID Column: {user_id_current} ({current_source})")
+            print(f"Current System Full Name Column: {dataset_full_name_column} ({full_name_source})")
+            print(f"Previous Reference User ID Column: {user_id_previous} ({previous_user_source})")
+            print(f"Previous Reference PERNR Column: {pernr_previous} ({previous_pernr_source})")
+            
+            previous_lookup_helpers = self._build_previous_reference_lookup(previous_df, user_id_previous, pernr_previous) if (has_previous_reference and user_id_previous and pernr_previous) else {'lookup_map': {}, 'normalized_ids': None, 'pernr_series': None}
+            print(f"Previous Reference lookup entries prepared: {len(previous_lookup_helpers['lookup_map'])}")
             print(f"=============================\n")
             
             # Process each row to add PERNR, Full Name, Resignation Date, and Organizational Data
@@ -102,27 +110,14 @@ class ProcessingController:
                 
                 # Step 1: Lookup PERNR by User ID from previous_reference (if available)
                 if has_previous_reference and user_id_current and user_id_previous and pernr_previous:
-                    user_id = row.get(user_id_current)
-                    if pd.notna(user_id):
-                        match = previous_df[previous_df[user_id_previous] == user_id]
-                        if not match.empty:
-                            # Handle all types of PERNR values (numeric, text, special formats)
-                            pernr_value = match.iloc[0][pernr_previous]
-                            
-                            # Check if PERNR is valid (not "cant find", "unknown", etc.)
-                            if self.main_controller.matching_engine.is_valid_pernr(pernr_value):
-                                # Convert to string and clean up whitespace
-                                pernr_str = str(pernr_value).strip()
-                                
-                                # Return the PERNR as-is if it has any content
-                                # This includes values like "SAMU-  ", "generic", numeric values, etc.
-                                employee_number = pernr_str if pernr_str else None
-                                
-                                if employee_number is not None:
-                                    match_type = "user_id_match"  # Track User ID match
-                                    match_score = 100.0
-                            # If PERNR is invalid (like "cant find"), employee_number remains None
-                            # and will trigger name matching fallback
+                    pernr_candidate = self._lookup_pernr_by_user_id(
+                        row.get(user_id_current),
+                        previous_lookup_helpers
+                    )
+                    if pernr_candidate:
+                        employee_number = pernr_candidate
+                        match_type = "user_id_match"  # Track User ID match
+                        match_score = 100.0
                 
                 # Step 2: Lookup using name matching (if User ID lookup failed or no Previous Reference)
                 if employee_number is None:
@@ -208,7 +203,9 @@ class ProcessingController:
             # Finalize processing
             self.finalize_processing(current_df, dataset)
             
-            self.main_controller.update_progress(100, "Clean-up completed successfully!")
+            total_duration = time.time() - start_time
+            time_msg = self._format_duration(total_duration)
+            self.main_controller.update_progress(100, f"Clean-up completed successfully! (Duration: {time_msg})")
             
             # Reset run button
             self.main_controller.main_window.root.after(
@@ -308,6 +305,195 @@ class ProcessingController:
                     pernr_previous = flexible_match[0]
         
         return user_id_current, user_id_previous, pernr_previous
+    
+    def _build_previous_reference_lookup(self, previous_df: Optional[pd.DataFrame], user_id_column: Optional[str], pernr_column: Optional[str]) -> Dict[str, object]:
+        """Build lookup helpers for Previous Reference data based on selected columns."""
+        helpers: Dict[str, object] = {
+            'lookup_map': {},
+            'normalized_ids': None,
+            'pernr_series': None
+        }
+        
+        if previous_df is None or not user_id_column or not pernr_column:
+            return helpers
+        
+        if user_id_column not in previous_df.columns or pernr_column not in previous_df.columns:
+            return helpers
+        
+        normalized_ids = previous_df[user_id_column].apply(self._normalize_lookup_value)
+        pernr_series = previous_df[pernr_column]
+        
+        lookup_map: Dict[str, str] = {}
+        for idx, normalized_value in normalized_ids.items():
+            if not normalized_value:
+                continue
+            
+            try:
+                pernr_value = pernr_series.loc[idx]
+            except KeyError:
+                pernr_value = pernr_series.iloc[idx]
+            pernr_str = self._normalize_pernr_value(pernr_value)
+            if not pernr_str:
+                continue
+            
+            # Preserve the first valid PERNR for each normalized user ID
+            lookup_map.setdefault(normalized_value, pernr_str)
+            
+            numeric_key = self._normalize_numeric_key(normalized_value)
+            if numeric_key:
+                lookup_map.setdefault(numeric_key, pernr_str)
+        
+        helpers['lookup_map'] = lookup_map
+        helpers['normalized_ids'] = normalized_ids
+        helpers['pernr_series'] = pernr_series
+        return helpers
+    
+    def _lookup_pernr_by_user_id(self, user_id_value, lookup_helpers: Dict[str, object]) -> Optional[str]:
+        """Lookup PERNR using normalized user ID value with prepared helpers."""
+        if not lookup_helpers:
+            return None
+        
+        normalized_key = self._normalize_lookup_value(user_id_value)
+        if not normalized_key:
+            return None
+        
+        lookup_map = lookup_helpers.get('lookup_map', {})
+        if normalized_key in lookup_map:
+            return lookup_map[normalized_key]
+        
+        numeric_key = self._normalize_numeric_key(normalized_key)
+        if numeric_key and numeric_key in lookup_map:
+            return lookup_map[numeric_key]
+        
+        normalized_series = lookup_helpers.get('normalized_ids')
+        pernr_series = lookup_helpers.get('pernr_series')
+        if normalized_series is None or pernr_series is None:
+            return None
+        
+        try:
+            matches = normalized_series[normalized_series == normalized_key]
+        except Exception:
+            return None
+        
+        if matches.empty:
+            if numeric_key:
+                try:
+                    matches = normalized_series[normalized_series == numeric_key]
+                except Exception:
+                    matches = pd.Series([], dtype=object)
+            
+            if matches.empty:
+                return None
+        
+        for idx in matches.index:
+            try:
+                pernr_value = pernr_series.loc[idx]
+            except KeyError:
+                pernr_value = pernr_series.iloc[idx]
+            pernr_str = self._normalize_pernr_value(pernr_value)
+            if pernr_str:
+                return pernr_str
+        
+        return None
+    
+    def _normalize_numeric_key(self, normalized_value: Optional[str]) -> Optional[str]:
+        """Calculate numeric-str key for values that represent numbers."""
+        if not normalized_value:
+            return None
+        
+        try:
+            numeric_val = float(normalized_value)
+        except ValueError:
+            return None
+        
+        if pd.isna(numeric_val):
+            return None
+        
+        # Use integer form if it equals its rounded version, otherwise keep the float string
+        if numeric_val.is_integer():
+            return str(int(numeric_val))
+        return str(numeric_val)
+    
+    def _normalize_lookup_value(self, value) -> Optional[str]:
+        """Normalize lookup keys (User IDs) for consistent matching."""
+        if value is None or (isinstance(value, float) and pd.isna(value)):
+            return None
+        
+        # Handle pandas NA types
+        if pd.isna(value):
+            return None
+        
+        if isinstance(value, str):
+            normalized = value.replace('\u00a0', ' ')
+        else:
+            try:
+                normalized = str(value)
+            except Exception:
+                return None
+        
+        normalized = normalized.replace('\r', ' ').replace('\n', ' ')
+        normalized = normalized.strip(" '\"\t")
+        if not normalized:
+            return None
+        
+        # Collapse consecutive whitespace into single spaces
+        normalized = ' '.join(normalized.split())
+        
+        if not normalized:
+            return None
+        
+        lowered = normalized.lower()
+        if lowered in {"nan", "none", "null"}:
+            return None
+        
+        # Remove trailing ".0" for numeric-like strings (common from Excel)
+        if normalized.endswith(".0"):
+            try:
+                float(normalized)
+                normalized = normalized[:-2]
+            except ValueError:
+                pass
+        
+        lower_normalized = normalized.lower()
+        
+        # Include numeric fallback in lookup map building by returning lower-normalized string
+        return lower_normalized
+    
+    def _normalize_pernr_value(self, pernr_value) -> Optional[str]:
+        """Normalize PERNR values and ensure they are valid."""
+        if not self.main_controller.matching_engine.is_valid_pernr(pernr_value):
+            return None
+        
+        pernr_str = str(pernr_value).replace('\u00a0', ' ')
+        pernr_str = pernr_str.replace('\r', ' ').replace('\n', ' ')
+        pernr_str = pernr_str.strip(" '\"\t")
+        pernr_str = ' '.join(pernr_str.split())
+        if pernr_str.endswith(".0"):
+            try:
+                float(pernr_str)
+                pernr_str = pernr_str[:-2]
+            except ValueError:
+                pass
+        
+        return pernr_str if pernr_str else None
+    
+    def _format_duration(self, seconds: float) -> str:
+        """Format duration in seconds to a human readable string (hours/minutes/seconds)."""
+        if seconds < 0:
+            seconds = 0
+        
+        minutes, secs = divmod(int(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+        
+        parts = []
+        if hours:
+            parts.append(f"{hours}h")
+        if minutes:
+            parts.append(f"{minutes}m")
+        if not parts or secs:
+            parts.append(f"{secs}s")
+        
+        return " ".join(parts)
     
     def get_full_name_from_pernr(self, employee_number: str, masterlist_current_df: Optional[pd.DataFrame], 
                                  masterlist_resigned_df: Optional[pd.DataFrame]) -> Tuple[Optional[str], Optional[str]]:

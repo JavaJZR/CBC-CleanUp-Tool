@@ -144,11 +144,11 @@ class FileUploadView:
             btn_frame,
             text="👁 Preview",
             command=lambda k=key: self.preview_file(k),
-            bg="#9B1313",
-            fg="white",
+            bg="#FCE6E2",
+            fg="#B85650",
             font=("Segoe UI", 10, "bold"),
             relief="flat",
-            cursor="hand2",
+            cursor="arrow",
             state="disabled",
             padx=18,
             pady=7,
@@ -157,11 +157,33 @@ class FileUploadView:
         )
         preview_btn.pack(side="left")
         
+        # Header re-selection button (only for current system report)
+        header_btn = None
+        if key == 'current_system':
+            header_btn = tk.Button(
+                btn_frame,
+                text="🔁 Change Header Row",
+                command=self.change_header_row,
+                bg="#FFF3CD",
+                fg="#9B7A02",
+                font=("Segoe UI", 10, "bold"),
+                relief="flat",
+                cursor="arrow",
+                state="disabled",
+                padx=18,
+                pady=7,
+                activebackground="#CD1C18",
+                activeforeground="white"
+            )
+            # Hide until a header row is selected
+            header_btn.pack_forget()
+        
         # Store references for later updates
         card.file_label = file_label
         card.preview_btn = preview_btn
         card.upload_btn = upload_btn
         card.is_masterlist = is_masterlist
+        card.header_btn = header_btn
         
         return card
     
@@ -225,6 +247,11 @@ class FileUploadView:
         if hasattr(self, 'controller') and self.controller:
             self.controller.preview_file(file_type)
     
+    def change_header_row(self):
+        """Allow re-selection of header row after upload"""
+        if hasattr(self, 'controller') and self.controller:
+            self.controller.reselect_current_system_header()
+    
     def clear_system_reports(self):
         """Clear only system report files (keep masterlists)"""
         confirm = messagebox.askyesno(
@@ -254,6 +281,11 @@ class FileUploadView:
             font=("Segoe UI", 9, "bold")
         )
         card.preview_btn.config(state="normal")
+        card.preview_btn.config(bg="#9B1313", fg="white", cursor="hand2")
+        if card.header_btn:
+            card.header_btn.config(state="normal", bg="#CD1C18", fg="white", cursor="hand2")
+            if not card.header_btn.winfo_ismapped():
+                card.header_btn.pack(side="left", padx=(8, 0))
         
         # Update button text to "Update" for masterlists after first upload
         if card.is_masterlist:
@@ -267,6 +299,11 @@ class FileUploadView:
             fg="#9ca3af"
         )
         card.preview_btn.config(state="disabled")
+        card.preview_btn.config(bg="#FCE6E2", fg="#B85650", cursor="arrow")
+        if card.header_btn:
+            card.header_btn.config(state="disabled", bg="#FFF3CD", fg="#9B7A02", cursor="arrow")
+            if card.header_btn.winfo_ismapped():
+                card.header_btn.pack_forget()
         
         # Reset button text for masterlists
         if card.is_masterlist:

@@ -35,9 +35,13 @@ class MainController:
     def initialize(self):
         """Initialize the application"""
         # Create main window and sub-controllers
+        from views.splash_screen import SplashScreen
         from views.main_window import MainWindow
         from controllers.file_controller import FileController
         from controllers.processing_controller import ProcessingController
+        
+        splash = SplashScreen()
+        splash.show()
         
         self.main_window = MainWindow(self)
         self.file_controller = FileController(self)
@@ -51,6 +55,8 @@ class MainController:
         
         # Load persisted masterlist files if they exist
         self.load_persisted_masterlists()
+        
+        splash.close()
     
     def setup_view_callbacks(self):
         """Setup callbacks between views and controllers"""
@@ -120,6 +126,9 @@ class MainController:
         # Show success message
         if self.main_window.file_upload_view:
             self.main_window.file_upload_view.show_success("System reports cleared. Masterlists remain loaded.")
+        
+        if self.main_window:
+            self.main_window.scroll_to_top()
     
     def clear_all_files(self):
         """Clear all uploaded files and reset the UI"""
@@ -153,6 +162,11 @@ class MainController:
         # Show success message
         if self.main_window.file_upload_view:
             self.main_window.file_upload_view.show_success("All files cleared. You can now upload new files.")
+    
+    def reselect_current_system_header(self):
+        """Allow user to change current system header selection"""
+        if self.file_controller:
+            self.file_controller.reselect_current_system_header()
     
     def show_preview_section(self):
         """Show data preview section"""

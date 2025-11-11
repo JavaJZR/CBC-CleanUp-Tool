@@ -88,9 +88,9 @@ class MainWindow:
     
     def create_scrollable_area(self):
         """Create scrollable main content area"""
-        main_canvas = tk.Canvas(self.root, bg="#f8fafc", highlightthickness=0)
-        scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=main_canvas.yview)
-        self.scrollable_frame = ttk.Frame(main_canvas)
+        self.main_canvas = tk.Canvas(self.root, bg="#f8fafc", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=self.main_canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.main_canvas)
         
         # Throttle scroll region updates for better performance
         self._update_scroll_region_pending = False
@@ -99,48 +99,54 @@ class MainWindow:
             """Update scroll region (throttled for performance)"""
             if not self._update_scroll_region_pending:
                 self._update_scroll_region_pending = True
-                main_canvas.after_idle(lambda: self._do_update_scroll_region(main_canvas))
+                self.main_canvas.after_idle(lambda: self._do_update_scroll_region(self.main_canvas))
         
         self.scrollable_frame.bind("<Configure>", update_scroll_region)
         
         # Create window for scrollable frame and bind canvas width to frame
-        canvas_window = main_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        main_canvas.configure(yscrollcommand=scrollbar.set)
+        canvas_window = self.main_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.canvas_window = canvas_window
+        self.main_canvas.configure(yscrollcommand=scrollbar.set)
         
         # Make scrollable frame expand to canvas width
         def on_canvas_configure(event):
-            main_canvas.itemconfig(canvas_window, width=event.width)
-        main_canvas.bind("<Configure>", on_canvas_configure)
+            self.main_canvas.itemconfig(canvas_window, width=event.width)
+        self.main_canvas.bind("<Configure>", on_canvas_configure)
         
         # Add mouse wheel support for smoother scrolling (Windows/Mac)
         def on_mousewheel(event):
             """Handle mouse wheel scrolling"""
-            main_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            self.main_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
             return "break"
         
         # Bind mouse wheel to the canvas
-        main_canvas.bind("<MouseWheel>", on_mousewheel)
+        self.main_canvas.bind("<MouseWheel>", on_mousewheel)
         
         # Also support Linux mouse wheel events
         def on_linux_mousewheel(event):
             """Handle Linux mouse wheel scrolling"""
             if event.num == 4:
-                main_canvas.yview_scroll(-1, "units")
+                self.main_canvas.yview_scroll(-1, "units")
             elif event.num == 5:
-                main_canvas.yview_scroll(1, "units")
+                self.main_canvas.yview_scroll(1, "units")
             return "break"
         
-        main_canvas.bind("<Button-4>", on_linux_mousewheel)
-        main_canvas.bind("<Button-5>", on_linux_mousewheel)
+        self.main_canvas.bind("<Button-4>", on_linux_mousewheel)
+        self.main_canvas.bind("<Button-5>", on_linux_mousewheel)
         
         # Use grid layout instead of pack for better expansion control
-        main_canvas.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
+        self.main_canvas.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
         scrollbar.grid(row=1, column=1, sticky="ns")
     
     def _do_update_scroll_region(self, canvas):
         """Actually update the scroll region"""
         canvas.configure(scrollregion=canvas.bbox("all"))
         self._update_scroll_region_pending = False
+    
+    def scroll_to_top(self):
+        """Scroll the main content area back to the top."""
+        if hasattr(self, 'main_canvas') and self.main_canvas:
+            self.main_canvas.yview_moveto(0)
     
     def create_instructions_section(self):
         """Create instructions section"""

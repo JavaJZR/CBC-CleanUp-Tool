@@ -376,6 +376,15 @@ class CleanupView:
         try:
             headers = self.controller.get_column_headers()
             
+            # Clear existing widgets to avoid duplicates on refresh
+            for child in self.column_controls_frame.winfo_children():
+                child.destroy()
+            
+            # Reset combobox references so new ones can be created cleanly
+            self.current_user_id_combo = None
+            self.previous_user_id_combo = None
+            self.previous_pernr_combo = None
+            
             # Create comboboxes for column selection
             # Current System Report - User ID column
             current_frame = tk.Frame(self.column_controls_frame, bg="white")
@@ -478,6 +487,17 @@ class CleanupView:
                 self.previous_user_id_var.set(custom_columns['previous_user_id'])
             if custom_columns['previous_pernr']:
                 self.previous_pernr_var.set(custom_columns['previous_pernr'])
+
+            # Bind selection changes to update custom lookup columns
+            if self.current_user_id_combo:
+                self.current_user_id_combo.bind("<<ComboboxSelected>>", self.on_custom_column_changed)
+            if self.previous_user_id_combo:
+                self.previous_user_id_combo.bind("<<ComboboxSelected>>", self.on_custom_column_changed)
+            if self.previous_pernr_combo:
+                self.previous_pernr_combo.bind("<<ComboboxSelected>>", self.on_custom_column_changed)
+
+            # Ensure current selections are honored when controls are created
+            self.on_custom_column_changed()
             
         except Exception as e:
             # If there's an error loading headers, show empty lists
@@ -487,6 +507,7 @@ class CleanupView:
         """Toggle column selection controls visibility"""
         if self.custom_column_var.get():
             self.column_controls_frame.pack(fill="x")
+            self.on_custom_column_changed()
         else:
             self.column_controls_frame.pack_forget()
             # Clear custom columns when disabled
@@ -526,14 +547,22 @@ class CleanupView:
     
     def run_cleanup(self):
         """Run the cleanup process"""
-        if self.run_btn:
+        if self._widget_exists(self.run_btn):
             self.run_btn.config(state="disabled")
-        if self.cancel_btn:
+        else:
+            self.run_btn = None
+        if self._widget_exists(self.cancel_btn):
             self.cancel_btn.pack(side="left")  # Show cancel button
-        if self.progress_bar:
+        else:
+            self.cancel_btn = None
+        if self._widget_exists(self.progress_bar):
             self.progress_bar['value'] = 0
-        if self.status_label:
+        else:
+            self.progress_bar = None
+        if self._widget_exists(self.status_label):
             self.status_label.config(text="Starting clean-up process...")
+        else:
+            self.status_label = None
         
         # Get current settings
         use_fuzzy_logic = self.fuzzy_var.get() if self.fuzzy_var else True
@@ -574,33 +603,49 @@ class CleanupView:
     
     def update_progress(self, value: float, status: str):
         """Update progress bar and status"""
-        if self.progress_bar:
+        if self._widget_exists(self.progress_bar):
             self.progress_bar.config(value=value)
-        if self.status_label:
+        else:
+            self.progress_bar = None
+        if self._widget_exists(self.status_label):
             self.status_label.config(text=status)
+        else:
+            self.status_label = None
     
     def reset_run_button(self):
         """Reset run button to normal state"""
-        if self.run_btn:
+        if self._widget_exists(self.run_btn):
             self.run_btn.config(state="normal")
-        if self.cancel_btn:
+        else:
+            self.run_btn = None
+        if self._widget_exists(self.cancel_btn):
             self.cancel_btn.pack_forget()  # Hide cancel button
+        else:
+            self.cancel_btn = None
     
     def reset_cleanup_state(self):
         """Reset cleanup view to initial state"""
         # Reset progress bar
-        if self.progress_bar:
+        if self._widget_exists(self.progress_bar):
             self.progress_bar['value'] = 0
+        else:
+            self.progress_bar = None
         
         # Reset status label
-        if self.status_label:
+        if self._widget_exists(self.status_label):
             self.status_label.config(text="Ready to start clean-up")
+        else:
+            self.status_label = None
         
         # Reset run button
-        if self.run_btn:
+        if self._widget_exists(self.run_btn):
             self.run_btn.config(state="normal")
-        if self.cancel_btn:
+        else:
+            self.run_btn = None
+        if self._widget_exists(self.cancel_btn):
             self.cancel_btn.pack_forget()  # Hide cancel button
+        else:
+            self.cancel_btn = None
         
         # Reset fuzzy logic to default
         if self.fuzzy_var:
@@ -609,18 +654,24 @@ class CleanupView:
         # Reset threshold to default
         if self.threshold_var:
             self.threshold_var.set(80)
-        if self.threshold_label:
+        if self._widget_exists(self.threshold_label):
             self.threshold_label.config(text="80%")
+        else:
+            self.threshold_label = None
         
         # Reset threshold slider state
-        if self.threshold_slider:
+        if self._widget_exists(self.threshold_slider):
             self.threshold_slider.config(state="normal")
+        else:
+            self.threshold_slider = None
         
         # Reset column selection
         if self.custom_column_var:
             self.custom_column_var.set(False)
-        if self.column_controls_frame:
+        if self._widget_exists(self.column_controls_frame):
             self.column_controls_frame.pack_forget()
+        else:
+            self.column_controls_frame = None
         
         # Clear custom columns
         if hasattr(self, 'controller') and self.controller:
@@ -628,6 +679,69 @@ class CleanupView:
     
     def refresh_column_headers(self):
         """Refresh column headers when files are uploaded"""
-        if self.column_selection_frame and self.custom_column_var and self.custom_column_var.get():
+        if self._widget_exists(self.column_selection_frame) and self.custom_column_var and self.custom_column_var.get():
             # Reload column headers
             self.load_column_headers()
+    
+    def refresh_full_name_options(self):
+        """Refresh Full Name combobox options after header changes"""
+        if not self._widget_exists(self.full_name_selection_frame) or not self.current_full_name_combo:
+            return
+        
+        try:
+            headers = self.controller.get_column_headers()
+            current_columns = headers.get('current_system', [])
+            
+            self.current_full_name_combo['values'] = current_columns
+            
+            # Determine the configured or best matching column
+            _, _, configured_full_name = self.controller.employee_dataset.get_current_system_config()
+            if configured_full_name and configured_full_name in current_columns:
+                self.current_full_name_var.set(configured_full_name)
+            else:
+                # Try to auto-select a likely column
+                selected = None
+                for col in current_columns:
+                    col_lower = str(col).lower()
+                    if any(keyword in col_lower for keyword in ['full name', 'name', 'username', 'user description', 'description', 'user desc', 'desc']):
+                        selected = str(col)
+                        break
+                if selected:
+                    self.current_full_name_var.set(selected)
+                elif current_columns:
+                    self.current_full_name_var.set(str(current_columns[0]))
+                else:
+                    self.current_full_name_var.set('')
+        except Exception:
+            # Leave existing selection if refresh fails
+            pass
+
+    def on_custom_column_changed(self, event=None):
+        """Update custom lookup columns when user changes selections."""
+        if not self.custom_column_var or not self.custom_column_var.get():
+            return
+
+        current_user_id = self.current_user_id_var.get() if self.current_user_id_var else None
+        previous_user_id = self.previous_user_id_var.get() if self.previous_user_id_var else None
+        previous_pernr = self.previous_pernr_var.get() if self.previous_pernr_var else None
+
+        # Normalize empty strings to None
+        current_user_id = current_user_id if current_user_id else None
+        previous_user_id = previous_user_id if previous_user_id else None
+        previous_pernr = previous_pernr if previous_pernr else None
+
+        self.controller.set_custom_lookup_columns(current_user_id, previous_user_id, previous_pernr)
+
+        # Update dataset configuration with the selected current system User ID column
+        if current_user_id:
+            header_row, _, full_name_column = self.controller.employee_dataset.get_current_system_config()
+            self.controller.employee_dataset.set_current_system_config(header_row, current_user_id, full_name_column)
+
+    def _widget_exists(self, widget) -> bool:
+        """Return True if the Tk widget reference is still valid."""
+        if widget is None:
+            return False
+        try:
+            return bool(widget.winfo_exists())
+        except tk.TclError:
+            return False

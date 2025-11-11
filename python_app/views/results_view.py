@@ -55,6 +55,9 @@ class ResultsView:
         
         # Export buttons
         self.create_export_buttons(statistics)
+        
+        # Restart option
+        self.create_restart_section()
     
     def create_statistics_display(self, statistics: Dict[str, int]):
         """Create statistics display"""
@@ -149,9 +152,12 @@ class ResultsView:
             bg="white",
             fg="#9B1313",
             padx=15,
-            pady=15
+            pady=15,
+            width=360,
+            height=130
         )
         cleaned_frame.pack(side="left", fill="both", expand=True, padx=(0, 8))
+        cleaned_frame.pack_propagate(False)
         
         tk.Label(
             cleaned_frame,
@@ -179,21 +185,6 @@ class ResultsView:
             activeforeground="white"
         ).pack(side="left", padx=(0, 8))
         
-        tk.Button(
-            btn_frame1,
-            text="📄 Export CSV",
-            command=lambda: self.export_data("cleaned_report", "csv"),
-            bg="#CD1C18",
-            fg="white",
-            font=("Segoe UI", 10, "bold"),
-            relief="flat",
-            cursor="hand2",
-            padx=18,
-            pady=8,
-            activebackground="#9B1313",
-            activeforeground="white"
-        ).pack(side="left")
-        
         # Unmatched data export
         unmatched_frame = tk.LabelFrame(
             export_frame,
@@ -202,9 +193,12 @@ class ResultsView:
             bg="white",
             fg="#9B1313",
             padx=15,
-            pady=15
+            pady=15,
+            width=360,
+            height=130
         )
         unmatched_frame.pack(side="left", fill="both", expand=True, padx=(8, 0))
+        unmatched_frame.pack_propagate(False)
         
         tk.Label(
             unmatched_frame,
@@ -232,21 +226,6 @@ class ResultsView:
             activeforeground="white"
         ).pack(side="left", padx=(0, 8))
         
-        tk.Button(
-            btn_frame2,
-            text="📄 Export CSV",
-            command=lambda: self.export_data("unmatched_for_review", "csv"),
-            bg="#9B1313",
-            fg="white",
-            font=("Segoe UI", 10, "bold"),
-            relief="flat",
-            cursor="hand2",
-            padx=18,
-            pady=8,
-            activebackground="#38000A",
-            activeforeground="white"
-        ).pack(side="left")
-        
         # Fuzzy matched data export (only show if there are fuzzy matches)
         if statistics['fuzzy_matched'] > 0:
             fuzzy_frame = tk.LabelFrame(
@@ -256,9 +235,12 @@ class ResultsView:
                 bg="white",
                 fg="#9B1313",
                 padx=15,
-                pady=15
+                pady=15,
+                width=360,
+                height=130
             )
             fuzzy_frame.pack(side="left", fill="both", expand=True, padx=(8, 0))
+            fuzzy_frame.pack_propagate(False)
             
             tk.Label(
                 fuzzy_frame,
@@ -286,21 +268,48 @@ class ResultsView:
                 activeforeground="white"
             ).pack(side="left", padx=(0, 8))
             
-            tk.Button(
-                btn_frame3,
-                text="📄 Export CSV",
-                command=lambda: self.export_data("fuzzy_logic_matches", "csv"),
-                bg="#CD1C18",
-                fg="white",
-                font=("Segoe UI", 10, "bold"),
-                relief="flat",
-                cursor="hand2",
-                padx=18,
-                pady=8,
-                activebackground="#9B1313",
-                activeforeground="white"
-            ).pack(side="left")
+            # CSV export removed by request
+
     
+    def create_restart_section(self):
+        """Create restart option so the user can start a new cleanup session."""
+        restart_frame = tk.LabelFrame(
+            self.results_frame,
+            text="🔄 Start a New Cleanup Session",
+            font=("Segoe UI", 12, "bold"),
+            bg="white",
+            fg="#9B1313",
+            padx=15,
+            pady=15
+        )
+        restart_frame.pack(fill="x", pady=(5, 0))
+
+        tk.Label(
+            restart_frame,
+            text="Finished reviewing and exporting? Restart to upload fresh reports and run another cleanup.",
+            font=("Segoe UI", 10, "bold"),
+            bg="white",
+            fg="#374151",
+            justify="left",
+            wraplength=700
+        ).pack(anchor="w")
+
+        tk.Button(
+            restart_frame,
+            text="🔁 Restart Cleanup Process",
+            command=self.restart_process,
+            bg="white",
+            fg="#CD1C18",
+            font=("Segoe UI", 10, "bold"),
+            relief="solid",
+            borderwidth=1,
+            cursor="hand2",
+            padx=18,
+            pady=8,
+            activebackground="#FEE2E2",
+            activeforeground="#9B1313"
+        ).pack(anchor="w", pady=(12, 0))
+
     def on_dataset_selected(self, event=None):
         """Handle dataset selection change"""
         self.update_preview()
@@ -349,6 +358,10 @@ class ResultsView:
         """Create data table display"""
         table_container = tk.Frame(self.results_preview_frame, bg="white")
         table_container.pack(fill="both", expand=True)
+
+        display_df = df.copy()
+        if 'PERNR' in display_df.columns:
+            display_df['PERNR'] = display_df['PERNR'].apply(self._format_pernr_value)
         
         # Style the Treeview with color scheme
         style = ttk.Style()
@@ -374,7 +387,7 @@ class ResultsView:
         y_scroll = ttk.Scrollbar(table_container, orient="vertical")
         
         # Create treeview
-        columns = list(df.columns)
+        columns = list(display_df.columns)
         tree = ttk.Treeview(
             table_container,
             columns=columns,
@@ -400,7 +413,7 @@ class ResultsView:
             tree.heading(col, text=str(col), command=lambda c=col: self.sort_treeview(tree, c, False))
         
         # Add data (first 100 rows for performance)
-        for idx, row in df.head(100).iterrows():
+        for idx, row in display_df.head(100).iterrows():
             values = [str(val) if pd.notna(val) else "" for val in row]
             tree.insert("", "end", text=str(idx + 1), values=values)
         
@@ -415,7 +428,7 @@ class ResultsView:
         # Info label
         info_label = tk.Label(
             self.results_preview_frame,
-            text=f"Showing first 100 rows of {len(df)} total rows | Highlighted: PERNR, Full Name, Resignation Date & Organizational Data columns",
+            text=f"Showing first 100 rows of {len(display_df)} total rows | Highlighted: PERNR, Full Name, Resignation Date & Organizational Data columns",
             font=("Segoe UI", 9, "bold"),
             bg="white",
             fg="#9B1313"
@@ -428,8 +441,10 @@ class ResultsView:
         if cleaned_data is None or cleaned_data.empty:
             return None
         
-        resigned_mask = cleaned_data['Resignation Date'].notna() & (cleaned_data['Resignation Date'] != '') & (cleaned_data['Resignation Date'] != 'None')
+        resigned_mask = cleaned_data['Resignation Date'].apply(self._is_valid_resignation_date)
         resigned_users = cleaned_data[resigned_mask].copy()
+        if 'PERNR' in resigned_users.columns:
+            resigned_users['PERNR'] = resigned_users['PERNR'].apply(self._format_pernr_value)
         
         if resigned_users.empty:
             return None
@@ -450,7 +465,7 @@ class ResultsView:
         if cleaned_data is None or cleaned_data.empty:
             return None
         
-        current_mask = cleaned_data['Resignation Date'].isna() | (cleaned_data['Resignation Date'] == '') | (cleaned_data['Resignation Date'] == 'None')
+        current_mask = ~cleaned_data['Resignation Date'].apply(self._is_valid_resignation_date)
         current_users = cleaned_data[current_mask].copy()
         
         if current_users.empty:
@@ -458,11 +473,15 @@ class ResultsView:
         
         # Sort by PERNR for consistent ordering
         try:
-            current_users['PERNR'] = pd.to_numeric(current_users['PERNR'], errors='coerce')
-            current_users = current_users.sort_values('PERNR', ascending=True)
-            current_users['PERNR'] = current_users['PERNR'].astype(str)
+            current_users['PERNR_sort_key'] = pd.to_numeric(current_users['PERNR'], errors='coerce')
+            current_users = current_users.sort_values('PERNR_sort_key', ascending=True)
         except:
             current_users = current_users.sort_values('PERNR', ascending=True)
+
+        if 'PERNR' in current_users.columns:
+            current_users['PERNR'] = current_users['PERNR'].apply(self._format_pernr_value)
+        if 'PERNR_sort_key' in current_users.columns:
+            current_users = current_users.drop(columns=['PERNR_sort_key'])
         
         return current_users
     
@@ -586,3 +605,77 @@ class ResultsView:
         """Handle export request"""
         if hasattr(self, 'controller') and self.controller:
             self.controller.handle_export_request(data_type, format_type)
+    def restart_process(self):
+        """Prompt user and restart the cleanup workflow from the beginning."""
+        if not hasattr(self, 'controller') or not self.controller:
+            return
+
+        confirm = messagebox.askyesno(
+            "Restart Cleanup Process",
+            "This will clear all uploaded files and results so you can start a new cleanup session.\n\nDo you want to continue?"
+        )
+        if confirm:
+            self.controller.clear_system_reports()
+
+    def _format_pernr_value(self, value):
+        """Normalize PERNR for display/export without trailing decimals."""
+        if pd.isna(value):
+            return ""
+
+        # If already a string without decimals, keep as-is
+        if isinstance(value, (str,)):
+            value_str = value.strip()
+            if not value_str:
+                return ""
+            if value_str.endswith(".0"):
+                return value_str[:-2]
+            return value_str
+
+        # Handle numeric types
+        try:
+            if isinstance(value, float) and value.is_integer():
+                return str(int(value))
+            int_val = int(value)
+            if float(int_val) == float(value):
+                return str(int_val)
+        except (ValueError, TypeError, OverflowError):
+            pass
+
+        # Fallback to generic string formatting without decimals
+        value_str = str(value)
+        if value_str.endswith(".0"):
+            return value_str[:-2]
+        return value_str
+
+    def _is_valid_resignation_date(self, value):
+        """Return True when value is an actual resignation date, not a status label."""
+        if pd.isna(value):
+            return False
+
+        value_str = str(value).strip()
+        if not value_str:
+            return False
+
+        invalid_statuses = {"ACTIVE", "EXTENDED", "WITH NEW PERNR"}
+        if value_str.upper() in invalid_statuses:
+            return False
+
+        invalid_keywords = [
+            "ACTIVE",
+            "EXTENDED",
+            "WITH NEW PERNR",
+            "W/ NEW PERNR",
+            "NO RESIGNATION",
+            "NONE",
+            "N/A",
+            "NA",
+            "PENDING",
+            "ON HOLD"
+        ]
+        value_upper = value_str.upper()
+        if any(keyword in value_upper for keyword in invalid_keywords):
+            return False
+
+        parsed_date = pd.to_datetime(value_str, format='%m/%d/%Y', errors='coerce')
+        return pd.notna(parsed_date)
+
