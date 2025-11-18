@@ -148,6 +148,39 @@ class MainWindow:
         if hasattr(self, 'main_canvas') and self.main_canvas:
             self.main_canvas.yview_moveto(0)
     
+    def scroll_to_widget(self, widget):
+        """Scroll the canvas to show a specific widget"""
+        if not hasattr(self, 'main_canvas') or not self.main_canvas:
+            return
+        
+        # Update scroll region first to ensure accurate coordinates
+        self.main_canvas.update_idletasks()
+        self.main_canvas.configure(scrollregion=self.main_canvas.bbox("all"))
+        
+        # Get widget position relative to scrollable frame
+        try:
+            widget.update_idletasks()
+            # Get the y-coordinate of the widget relative to the scrollable frame
+            y = widget.winfo_y()
+            
+            # Get the height of the canvas viewport
+            canvas_height = self.main_canvas.winfo_height()
+            
+            # Get the total height of the scrollable content
+            bbox = self.main_canvas.bbox("all")
+            if bbox:
+                total_height = bbox[3] - bbox[1]
+                
+                # Calculate the scroll position (0.0 to 1.0)
+                # Position widget near the top of the viewport (with some padding)
+                scroll_position = max(0.0, min(1.0, (y - 20) / total_height))
+                
+                # Scroll to the calculated position
+                self.main_canvas.yview_moveto(scroll_position)
+        except Exception:
+            # If scrolling fails, just scroll to a reasonable position
+            pass
+    
     def create_instructions_section(self):
         """Create instructions section"""
         inst_frame = tk.LabelFrame(
@@ -254,6 +287,10 @@ class MainWindow:
         """Show cleanup configuration section"""
         if self.cleanup_view:
             self.cleanup_view.show()
+            # Scroll to the cleanup section after it's shown
+            # Use after_idle to ensure the widget is fully rendered
+            if self.cleanup_view.cleanup_frame:
+                self.root.after_idle(lambda: self.scroll_to_widget(self.cleanup_view.cleanup_frame))
     
     def show_results_section(self, statistics: dict):
         """Show results section"""
