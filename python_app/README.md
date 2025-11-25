@@ -131,6 +131,16 @@ Your uploaded files should have:
 - Verify file has column headers in first row
 - Try opening file in Excel to check for issues
 
+### File import looks wrong
+- Use **Reselect Current System Header** to pick the correct header row if columns shift after upload.
+- If Excel headers are merged, save a copy of the file (which flattens merges) before re-uploading.
+- When columns seem missing (e.g., PERNR in Column O), re-export the file from Excel or re-upload so the tool reads the full width.
+
+### Matching problems
+- Double-check the **User ID** and **Full Name** column selections before running cleanup.
+- If nothing matches, enable **Use Fuzzy Logic** and lower the threshold (50–60%) to test whether names are comparable.
+- If too many incorrect matches appear, raise the threshold toward 90% or temporarily disable fuzzy logic for exact matches.
+
 ### Slow performance
 - Reduce file size by splitting large datasets
 - Close other resource-intensive applications
@@ -140,6 +150,16 @@ Your uploaded files should have:
 - This is normal for large datasets
 - Wait for the progress bar to complete
 - Avoid clicking buttons during processing
+
+### Export issues
+- If an Excel export fails, make sure the destination file is closed and you have write access to that folder.
+- CSVs open best when imported via **Data > From Text/CSV** in Excel and set to UTF-8 encoding.
+- Empty export sheets usually mean no records were produced for that category; check the Preview tab before exporting.
+
+### Environment checks
+- Run `pip install -r requirements.txt` inside your virtual environment to keep pandas/openpyxl/fuzzywuzzy aligned.
+- On Linux, install tkinter separately (`sudo apt-get install python3-tk`) if it is missing.
+- Keep a console open when launching `python main.py` so errors and debug hints are visible if something goes wrong.
 
 ## 🔄 Differences from Web Version
 
