@@ -88,12 +88,39 @@ class MatchingEngine:
         if masterlist_df is None or masterlist_df.empty:
             return None, None, "no_match", 0.0
         
-        # Find name columns in masterlist - prioritize "Full Name" column
-        name_columns = [col for col in masterlist_df.columns if col == 'Full Name']
+        # Find name columns in masterlist - prioritize columns that clearly contain full names
+        normalized_columns = [(col, str(col).strip().lower()) for col in masterlist_df.columns]
+        priority_full_names = {
+            'full name',
+            'full_name',
+            'fullname',
+            'full-name',
+            'full name (from masterlist)'
+        }
+        
+        # Priority 1: Explicit "Full Name" style headers
+        name_columns = [col for col, norm in normalized_columns if norm in priority_full_names]
+        
+        # Priority 2: Columns that contain both "full" and "name" anywhere
         if not name_columns:
-            # Fallback to flexible matching (could be "Name", "Employee Name", "User Description", etc.)
-            name_columns = [col for col in masterlist_df.columns 
-                          if any(keyword in str(col).lower() for keyword in ['name', 'description', 'desc'])]
+            name_columns = [
+                col for col, norm in normalized_columns
+                if 'full' in norm and 'name' in norm
+            ]
+        
+        # Priority 3: Any column mentioning "name"
+        if not name_columns:
+            name_columns = [
+                col for col, norm in normalized_columns
+                if 'name' in norm
+            ]
+        
+        # Priority 4: Fallback to description-like columns
+        if not name_columns:
+            name_columns = [
+                col for col, norm in normalized_columns
+                if any(keyword in norm for keyword in ['description', 'desc'])
+            ]
         if not name_columns:
             return None, None, "no_match", 0.0
         
@@ -171,9 +198,9 @@ class MatchingEngine:
         Calculate similarity score for name order variations
         Handles cases like "Jared Ranjo" vs "Ranjo, Jared"
         """
-        # Split names into parts
-        name1_parts = [part.strip() for part in name1.split() if part.strip()]
-        name2_parts = [part.strip() for part in name2.split() if part.strip()]
+        # Split names into parts, removing commas and other punctuation
+        name1_parts = [part.strip().rstrip(',').strip() for part in name1.split() if part.strip()]
+        name2_parts = [part.strip().rstrip(',').strip() for part in name2.split() if part.strip()]
         
         # If either name has less than 2 parts, use regular fuzzy matching
         if len(name1_parts) < 2 or len(name2_parts) < 2:

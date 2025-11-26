@@ -123,7 +123,7 @@ class ResultsView:
             values=[
                 "✓ Enriched Data (with PERNRs, Full Names, Resignation Dates & Organizational Data)",
                 "📋 Resigned Users (with Resignation Dates)",
-                "👥 Current Users (Active Employees Only)",
+                "👥 Active Users (Active Employees Only)",
                 "🔍 Fuzzy Logic Matches (PERNRs found using fuzzy matching)",
                 "⚠ Missing PERNRs"
             ]
@@ -325,9 +325,9 @@ class ResultsView:
         elif "Resigned" in selected:
             df = self.get_resigned_users_data()
             dataset_name = "Resigned Users"
-        elif "Current" in selected:
+        elif "Current" in selected or "Active" in selected:
             df = self.get_current_users_data()
-            dataset_name = "Current Users"
+            dataset_name = "Active Users"
         elif "Fuzzy Logic" in selected:
             df = self.controller.employee_dataset.fuzzy_matched_data
             dataset_name = "Fuzzy Logic Matches"

@@ -688,7 +688,25 @@ class ProcessingController:
             }
             
             for target_col, keywords in org_columns.items():
-                # Find matching column in masterlist
+                # Special handling for Department/Branch - prioritize exact "Branch/Department" match
+                if target_col == 'Department/Branch':
+                    # First try exact match for "Branch/Department"
+                    if 'Branch/Department' in masterlist_current_df.columns:
+                        value = masterlist_current_df.loc[original_idx, 'Branch/Department']
+                        if pd.notna(value):
+                            org_data[target_col] = str(value)
+                            continue
+                
+                # Special handling for Group Name - prioritize exact "Group" match
+                if target_col == 'Group Name':
+                    # First try exact match for "Group"
+                    if 'Group' in masterlist_current_df.columns:
+                        value = masterlist_current_df.loc[original_idx, 'Group']
+                        if pd.notna(value):
+                            org_data[target_col] = str(value)
+                            continue
+                
+                # Find matching column in masterlist using flexible keyword matching
                 matching_cols = [col for col in masterlist_current_df.columns 
                                if any(keyword in str(col).lower() for keyword in keywords)]
                 

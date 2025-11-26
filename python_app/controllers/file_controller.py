@@ -301,13 +301,13 @@ class FileController:
             
             # Export with multiple sheets
             multi_sheet_data = {
-                'Cleaned Data': df,
+                'Masterdata': df,
                 'Resigned Users': resigned_users if resigned_users is not None and not resigned_users.empty else pd.DataFrame(columns=df.columns),
-                'Current Users': current_users if current_users is not None and not current_users.empty else pd.DataFrame(columns=df.columns)
+                'Active Users': current_users if current_users is not None and not current_users.empty else pd.DataFrame(columns=df.columns)
             }
             
             self.file_handler.export_to_excel(df, file_path, multi_sheet_data)
-            messagebox.showinfo("Success", f"Data exported to:\n{file_path}\n\nSheets created:\n• Cleaned Data\n• Resigned Users\n• Current Users")
+            messagebox.showinfo("Success", f"Data exported to:\n{file_path}\n\nSheets created:\n• Masterdata\n• Resigned Users\n• Active Users")
     
     def export_cleaned_data_csv(self, df: pd.DataFrame, base_name: str, timestamp: str):
         """Export cleaned data to CSV"""
